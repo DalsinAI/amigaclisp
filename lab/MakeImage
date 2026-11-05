@@ -1,0 +1,12 @@
+; AmigaCLISP: save lispinit.mem on the target (a memory image is made where it runs).
+; Run from the AmigaCLISP folder: Execute MakeImage
+Stack 2000000
+CD full
+/lisp -B "" -norc makeimage.lisp
+CD /
+If EXISTS full/lispinit.mem
+  Rename full/lispinit.mem lispinit.mem
+  Echo "MakeImage: lispinit.mem saved"
+Else
+  Echo "MakeImage: no lispinit.mem"
+EndIf

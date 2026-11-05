@@ -1,0 +1,13 @@
+--- a/src/makemake.in	2026-11-05 15:58:01.960146388 +0000
++++ b/src/makemake.in	2026-11-05 15:58:01.996262334 +0000
+@@ -2554,7 +2554,9 @@
+   test $f = genclisph && flags=$flags" -DCOMPILE_STANDALONE"
+   if [ $f = modules ] ; then
+     c=${SRCDIR}${c}
+-    if [ $HOS = unix ] ; then
++    # AmigaOS cross build: clisp.h comes from genclisph, which must run on
++    # the target, so modules.c takes lispbibl.c as on Windows.
++    if [ $HOS = unix ] && case "$host_os" in amigaos*) false ;; *) true ;; esac ; then
+       dependsc=$dependsc' clisp.h'
+     else
+       flags=$flags' -DNO_CLISP_H'

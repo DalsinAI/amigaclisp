@@ -1,0 +1,9 @@
+{
+  "name": "clisp",
+  "upstream": "https://gitlab.com/gnu-clisp/clisp",
+  "commit": "db78dbd2cf08910596aeda694a23773346e703b0",
+  "version": "2.49.95+ (2026-10-26)",
+  "archive": "https://gitlab.com/gnu-clisp/clisp/-/archive/db78dbd2cf08910596aeda694a23773346e703b0/clisp-db78dbd2cf08910596aeda694a23773346e703b0.tar.gz",
+  "archive_sha256": "b81fec82254f8a26631fcff4a94a91e9fb6fe6a9f2cd3a33c9b0760ce1bcb233",
+  "licence": "GPL-2.0-or-later"
+}
