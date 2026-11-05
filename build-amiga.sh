@@ -12,7 +12,7 @@
 #   4 package lisp.run, the .fas files and lab/MakeImage for the lab, where
 #             lispinit.mem is saved (a memory image must be made on the target)
 #
-# Copyright (c) 2026 AmigaChrome Team. GPL-2.0-or-later, as CLISP.
+# Copyright (c) 2026 AmiCradle Team. GPL-2.0-or-later, as CLISP.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 STOVE=${STOVE:?STOVE is not set}

@@ -1,5 +1,5 @@
 /* AmigaCLISP: a Unix view of AmigaDOS paths for CLISP.
-   Copyright (c) 2026 AmigaChrome Team. GPL-2.0-or-later, as CLISP.
+   Copyright (c) 2026 AmiCradle Team. GPL-2.0-or-later, as CLISP.
 
    CLISP's pathname code is written for Unix: absolute paths start with '/'.
    The linker wraps the libnix file calls (-Wl,--wrap=open, ...) so that CLISP
