@@ -117,8 +117,11 @@ PKG=$OUT/AmigaCLISP
 rm -rf "$PKG"; mkdir -p "$PKG/full"
 cp "$CROSS/lisp.run" "$PKG/lisp"
 cp "$HOST"/*.fas "$PKG/full/"
-cp "$HERE/lab/MakeImage" "$PKG/"
-FPU=$("$STOVE/prefix/bin/m68k-amigaos-objdump" -d "$PKG/lisp" | grep -cE '\sf(move|add|sub|mul|div|cmp|sqrt|int|abs|neg|b[a-z]+)\.?' || true)
-log "lisp $(wc -c < "$PKG/lisp") bytes, FPU instructions: $FPU"
+cp "$HERE/lab/MakeImage" "$PKG/"; cp "$HERE/lab/makeimage.lisp" "$PKG/full/"
+OBJDUMP="$STOVE/prefix/bin/m68k-amigaos-objdump"
+"$STOVE/prefix/bin/m68k-amigaos-strip" -o "$PKG/lisp.stripped" "$PKG/lisp" 2>/dev/null && mv "$PKG/lisp.stripped" "$PKG/lisp" || log "strip failed: lisp left unstripped"
+# FPU instructions, by function (68040 disassembly; libnix's start-up FPCR set-up is guarded)
+"$OBJDUMP" -m m68k:68040 -d "$CROSS/lisp.run" | awk -F'\t' '/^[0-9a-f]+ <.*>:$/ {fn=$0} $3 ~ /^f[a-z]/ {n[fn]++; t++} END {print "FPU instructions:", t+0; for (f in n) print "  " n[f], f}' | head -40
+log "lisp $(wc -c < "$PKG/lisp") bytes"
 ( cd "$PKG" && find . -type f | sort | xargs sha256sum ) > "$OUT/SHA256SUMS"
 log "DONE"
