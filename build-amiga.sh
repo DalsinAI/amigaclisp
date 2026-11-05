@@ -80,10 +80,11 @@ if [ ! -f "$HOST/.done" ]; then
 fi
 
 # 3 cross
-# Object model: AmigaOS hands out Fast RAM at 0x40000000 and up, which collides
-# with the 32-bit TYPECODES type byte (gc_mark found 0x40000000 "objects").
-# WIDE_SOFT (64-bit objects, no address-space assumptions) is the model that
-# makes none; NO_ASM keeps a4 (CLISP's STACK register on m68k) free.
+# Object model: WIDE_SOFT (64-bit objects on a 32-bit CPU), the one model that
+# makes no assumptions about where AmigaOS puts memory (Fast RAM is at
+# 0x40000000 and up). It is what CLISP picks here anyway; spelt out so it stays.
+# NO_ASM keeps a4 (CLISP's STACK register on m68k) free.
+OPT=${CLISP_OPT:--O0}   # -O0 while the GC crash in compiler.fas is chased
 OBJMODEL="-DNO_ADDRESS_SPACE_ASSUMPTIONS -DNO_ASM -DNO_ARI_ASM -DNO_SP_ASM -DNO_GENERATIONAL_GC"
 # file calls that take a path go through compat/unixpath.c
 WRAPS="-Wl,--wrap=open,--wrap=stat,--wrap=lstat,--wrap=access,--wrap=opendir,--wrap=chdir,--wrap=getcwd"
@@ -102,7 +103,7 @@ if [ ! -f "$CROSS/.done" ]; then
     done
     rm -rf "$CROSS"; mkdir -p "$CROSS"; cp "$HERE/toolchain/intparam.h" "$CROSS/intparam.h"
     ( cd "$XSRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
-        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" CPPFLAGS="$OBJMODEL" LDFLAGS="$WRAPS -Wl,-Map=$CACHE/lisp.ldmap" LIBS="$CACHE/libamigacompat.a -lm" \
+        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" CFLAGS="-g $OPT" CPPFLAGS="$OBJMODEL" LDFLAGS="$WRAPS -Wl,-Map=$CACHE/lisp.ldmap" LIBS="$CACHE/libamigacompat.a -lm" \
         $NICE ./configure --host=m68k-amigaos --build="$(sh "$XSRC/src/build-aux/config.guess")" \
         --without-ffcall --without-readline --without-dynamic-modules --ignore-absence-of-libsigsegv \
         --disable-nls --disable-mmap "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \

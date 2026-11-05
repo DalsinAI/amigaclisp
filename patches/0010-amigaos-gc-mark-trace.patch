@@ -1,7 +1,7 @@
 diff -ru a/src/spvw_gcmark.d b/src/spvw_gcmark.d
 --- a/src/spvw_gcmark.d	2026-11-05 17:32:10.853289707 +0000
 +++ b/src/spvw_gcmark.d	2026-11-05 17:32:21.649943932 +0000
-@@ -1,5 +1,23 @@
+@@ -1,5 +1,28 @@
  /* Recursive marking routine. */
  
 +#ifdef UNIX_AMIGAOS
@@ -10,14 +10,19 @@ diff -ru a/src/spvw_gcmark.d b/src/spvw_gcmark.d
 +    #define AMIGA_GC_MODEL "KERNELVOID32_HEAPCODES"
 +  #elif defined(ONE_FREE_BIT_HEAPCODES)
 +    #define AMIGA_GC_MODEL "ONE_FREE_BIT_HEAPCODES"
++  #elif defined(WIDE_SOFT)
++    #define AMIGA_GC_MODEL "WIDE_SOFT"
 +  #elif defined(TYPECODES)
 +    #define AMIGA_GC_MODEL "TYPECODES"
 +  #else
 +    #define AMIGA_GC_MODEL "other"
 +  #endif
++  #define gc_mark_half(x,sh)  ((unsigned long)((unsigned long long)as_oint(x) >> (sh)))
 +  #define gc_mark_bad(c,p)  \
-+    (fprintf(stderr,"[amiga gc] gc_mark (%s, varobject_alignment %d): no object: curr=0x%08lx pred=0x%08lx\n", \
-+             AMIGA_GC_MODEL,(int)varobject_alignment,(unsigned long)as_oint(c),(unsigned long)as_oint(p)), abort())
++    (fprintf(stderr,"[amiga gc] gc_mark (%s, varobject_alignment %d): no object: curr=0x%08lx%08lx pred=0x%08lx%08lx\n", \
++             AMIGA_GC_MODEL,(int)varobject_alignment, \
++             sizeof(oint) > 4 ? gc_mark_half(c,32) : 0UL, gc_mark_half(c,0), \
++             sizeof(oint) > 4 ? gc_mark_half(p,32) : 0UL, gc_mark_half(p,0)), abort())
 +#else
 +  #define gc_mark_bad(c,p)  abort()
 +#endif
@@ -25,7 +30,7 @@ diff -ru a/src/spvw_gcmark.d b/src/spvw_gcmark.d
  local void gc_mark (object obj)
  {
    var object curr = obj; /* current object */
-@@ -259,7 +277,7 @@
+@@ -259,7 +282,7 @@
        /* These are direct objects, no pointers. */
        goto up;
      default: /* These are no objects. */
@@ -34,7 +39,7 @@ diff -ru a/src/spvw_gcmark.d b/src/spvw_gcmark.d
    }
   #else
    switch (as_oint(curr) & nonimmediate_heapcode_mask) {
-@@ -333,7 +351,7 @@
+@@ -333,7 +356,7 @@
        /* These are direct objects, no pointers. */
        goto up;
      default:
@@ -43,7 +48,7 @@ diff -ru a/src/spvw_gcmark.d b/src/spvw_gcmark.d
    }
   #endif
   up: /* entry for ascent.
-@@ -411,7 +429,7 @@
+@@ -411,7 +434,7 @@
        case_lfloat: /* long-float */
          /* Objects of variable length, that do not contain pointers. */
        default: /* these are no objects. */
@@ -52,7 +57,7 @@ diff -ru a/src/spvw_gcmark.d b/src/spvw_gcmark.d
      }
     #else
      switch (as_oint(pred) & nonimmediate_heapcode_mask) {
-@@ -426,7 +444,7 @@
+@@ -426,7 +449,7 @@
          up_subr();
        #endif
        default: /* these are no objects. */
