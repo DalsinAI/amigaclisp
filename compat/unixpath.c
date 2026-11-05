@@ -19,9 +19,22 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <stdio.h>
+#include <dos/dosextens.h>
+#include <proto/exec.h>
 #include <proto/dos.h>
 
 #define AMIGA_PATH_MAX 1024
+
+static int trace = -1;                          /* CLISP_TRACE set: log each path */
+
+/* A Unix path can name a volume that isn't there ("/lisp" is the volume
+   lisp:): fail with ENOENT instead of putting up "Please insert volume". */
+__attribute__((constructor)) static void unixpath_init (void)
+{
+  struct Process *me = (struct Process *)FindTask(NULL);
+  me->pr_WindowPtr = (APTR)-1;
+}
 
 /* Unix-view path -> AmigaDOS path in out. Returns 0, or -1 (ENAMETOOLONG). */
 static int to_amiga (const char *in, char *out, size_t size)
@@ -63,6 +76,8 @@ static int to_amiga (const char *in, char *out, size_t size)
     p += len;
   }
   out[n] = 0;
+  if (trace < 0) trace = getenv("CLISP_TRACE") != NULL;
+  if (trace) fprintf(stderr, "[amiga path] %s -> %s\n", in, out);
   return 0;
 toolong:
   errno = ENAMETOOLONG;
