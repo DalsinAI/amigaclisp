@@ -3,6 +3,8 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <proto/dos.h>
 
 /* AmigaOS delivers no asynchronous Unix signals, so there is no mask to keep. */
@@ -30,4 +32,16 @@ int amiga_console_mode (int raw)
   if (in == 0 || !IsInteractive(in))
     return -1;
   return SetMode(in, raw ? 1 : 0) ? 0 : -1;
+}
+
+/* abort() says only "Program aborted": say where from first. The address
+   minus main's, plus main's address in lisp.map (the build's nm), is the caller. */
+extern int main ();
+void __real_abort (void) __attribute__((noreturn));
+void __wrap_abort (void)
+{
+  fprintf(stderr, "[amiga abort] called from %p, main at %p\n",
+          __builtin_return_address(0), (void *)main);
+  fflush(stderr);
+  __real_abort();
 }

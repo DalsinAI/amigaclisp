@@ -82,7 +82,7 @@ fi
 # 3 cross
 # file calls that take a path go through compat/unixpath.c
 WRAPS="-Wl,--wrap=open,--wrap=stat,--wrap=lstat,--wrap=access,--wrap=opendir,--wrap=chdir,--wrap=getcwd"
-WRAPS="$WRAPS,--wrap=mkdir,--wrap=rmdir,--wrap=unlink,--wrap=rename,--wrap=realpath,--wrap=readlink"
+WRAPS="$WRAPS,--wrap=mkdir,--wrap=rmdir,--wrap=unlink,--wrap=rename,--wrap=realpath,--wrap=readlink,--wrap=abort"
 if [ ! -f "$CROSS/.done" ]; then
   [ -x "$CC_AMIGA" ] || { echo "no compiler at $CC_AMIGA"; exit 1; }
   log "$("$CC_AMIGA" --version | head -1)"
@@ -126,6 +126,8 @@ cp "$CROSS/lisp.run" "$PKG/lisp"
 cp "$HOST"/*.fas "$PKG/full/"
 cp "$HERE/lab/MakeImage" "$PKG/"; cp "$HERE/lab/makeimage.lisp" "$PKG/full/"
 OBJDUMP="$STOVE/prefix/bin/m68k-amigaos-objdump"
+# symbol map for crash addresses ([amiga abort] lines give an address and main's)
+"$STOVE/prefix/bin/m68k-amigaos-nm" -n "$PKG/lisp" > "$OUT/lisp.map" 2>/dev/null || true
 "$STOVE/prefix/bin/m68k-amigaos-strip" -o "$PKG/lisp.stripped" "$PKG/lisp" 2>/dev/null && mv "$PKG/lisp.stripped" "$PKG/lisp" || log "strip failed: lisp left unstripped"
 # FPU instructions, by function (68040 disassembly; libnix's start-up FPCR set-up is guarded)
 "$OBJDUMP" -m m68k:68040 -d "$CROSS/lisp.run" | awk -F'\t' '/^[0-9a-f]+ <.*>:$/ {fn=$0} $3 ~ /^f[a-z]/ {n[fn]++; t++} END {print "FPU instructions:", t+0; for (f in n) print "  " n[f], f}' | head -40
