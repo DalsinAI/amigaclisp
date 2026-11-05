@@ -34,7 +34,8 @@ TGZ=$CACHE/clisp-$COMMIT.tar.gz
 CC_AMIGA="$STOVE/prefix/bin/m68k-amigaos-gcc"
 SPECS="$HERE/toolchain/m68k-soft-m68040.specs"
 
-# 1 fetch
+# 1 fetch: SRC is the pristine source (host build), XSRC a patched copy (cross build),
+# made again whenever the patch set changes.
 if [ ! -f "$SRC/.unpacked" ]; then
   [ -f "$TGZ" ] || { log "fetch $URL"; curl -fsSL -o "$TGZ.part" "$URL"; mv "$TGZ.part" "$TGZ"; }
   GOT=$(sha256sum "$TGZ" | cut -d' ' -f1)
@@ -43,8 +44,17 @@ if [ ! -f "$SRC/.unpacked" ]; then
   rm -rf "$SRC" "$SRC.tmp"; mkdir -p "$SRC.tmp"
   tar -xzf "$TGZ" -C "$SRC.tmp" --strip-components=1
   mv "$SRC.tmp" "$SRC"
-  ( cd "$SRC" && for p in "$HERE"/patches/*.patch; do [ -f "$p" ] || continue; log "patch $(basename "$p")"; patch -p1 < "$p"; done )
   touch "$SRC/.unpacked"
+fi
+PSET=$(cat "$HERE"/patches/*.patch "$HERE/toolchain/config.site" "$HERE/build-amiga.sh" 2>/dev/null | sha256sum | cut -c1-16)
+XSRC=$CACHE/xsrc
+CROSS=$CACHE/cross
+if [ "$(cat "$XSRC/.pset" 2>/dev/null)" != "$PSET" ]; then
+  log "patch set $PSET: fresh cross source"
+  rm -rf "$XSRC" "$CROSS"; mkdir -p "$XSRC"
+  tar -xzf "$TGZ" -C "$XSRC" --strip-components=1
+  ( cd "$XSRC" && for p in "$HERE"/patches/*.patch; do [ -f "$p" ] || continue; log "patch $(basename "$p")"; patch -p1 < "$p"; done )
+  echo "$PSET" > "$XSRC/.pset"
 fi
 
 # 2 host
@@ -68,16 +78,15 @@ if [ ! -f "$HOST/.done" ]; then
 fi
 
 # 3 cross
-CROSS=$CACHE/cross
 if [ ! -f "$CROSS/.done" ]; then
   [ -x "$CC_AMIGA" ] || { echo "no compiler at $CC_AMIGA"; exit 1; }
   log "$("$CC_AMIGA" --version | head -1)"
   if [ ! -f "$CROSS/Makefile" ]; then
     log "cross configure"
     rm -rf "$CROSS"
-    ( cd "$SRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
+    ( cd "$XSRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
         CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" \
-        $NICE ./configure --host=m68k-amigaos --build="$(sh "$SRC/src/build-aux/config.guess")" \
+        $NICE ./configure --host=m68k-amigaos --build="$(sh "$XSRC/src/build-aux/config.guess")" \
         --without-ffcall --without-readline --without-dynamic-modules --ignore-absence-of-libsigsegv \
         --disable-nls --disable-mmap --without-unicode "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
       || { tail -60 "$CACHE/cross-configure.log"; exit 1; }
