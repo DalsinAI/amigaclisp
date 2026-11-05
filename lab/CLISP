@@ -7,4 +7,4 @@ Stack 2000000
 If NOT EXISTS CLISP:lispinit.mem
   Execute CLISP:MakeImage
 EndIf
-CLISP:lisp -B CLISP:full -M CLISP:lispinit.mem {ARGS}
+CLISP:lisp -B CLISP:full -M CLISP:lispinit.mem -Eterminal ISO-8859-1 -Epathname ISO-8859-1 {ARGS}

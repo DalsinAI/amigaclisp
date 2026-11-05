@@ -1,12 +1,14 @@
 ; AmigaCLISP: save CLISP:lispinit.mem, the memory image CLISP starts from.
 ; It is made on the Amiga it runs on (a few minutes on a 68040): CLISP does it
 ; on first start, or run Execute CLISP:MakeImage after an update.
+; -E gives the encodings, as upstream does when it saves its image: without
+; them CLISP stops looking for a locale (FUNCALL: undefined function CERROR).
 Stack 2000000
 Set clispcd "`CD`"
 CD CLISP:full
 Delete CLISP:lispinit.mem QUIET >NIL:
 Echo "MakeImage: loading CLISP to save its image, please wait..."
-CLISP:lisp -B "" -norc makeimage.lisp
+CLISP:lisp -B "" -Efile UTF-8 -Eterminal ISO-8859-1 -Emisc 1:1 -Epathname 1:1 -norc makeimage.lisp
 CD "$clispcd"
 UnSet clispcd
 If EXISTS CLISP:full/lispinit.mem
