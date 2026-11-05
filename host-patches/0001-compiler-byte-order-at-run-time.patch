@@ -1,0 +1,43 @@
+--- a/src/compiler.lisp
++++ b/src/compiler.lisp
+@@ -10728,12 +10728,16 @@
+       :name fname
+       :code
+         (macrolet ((as-word (anz)
+-                     (if *big-endian*
+-                       ;; BIG-ENDIAN-Processor
+-                       `(floor ,anz 256)
+-                       ;; LITTLE-ENDIAN-Processor
+-                       `(multiple-value-bind (q r) (floor ,anz 256)
+-                         (values r q)))))
++                     ;; The byte order of the Lisp that runs this compiler,
++                     ;; looked up when it runs, not when the compiler itself
++                     ;; was compiled: a compiler.fas made on a little-endian
++                     ;; host must make big-endian code on a big-endian target.
++                     `(if *big-endian*
++                        ;; BIG-ENDIAN-Processor
++                        (floor ,anz 256)
++                        ;; LITTLE-ENDIAN-Processor
++                        (multiple-value-bind (q r) (floor ,anz 256)
++                          (values r q)))))
+           (multiple-value-call #'list*
+             (as-word (car SPdepth))
+             (as-word (cdr SPdepth))
+@@ -10803,11 +10807,12 @@
+   (let ((const-list (closure-consts closure))
+         (byte-list (coerce (closure-codevec closure) 'list)))
+     (macrolet ((pop2 (listvar)
+-                 (if *big-endian*
+-                   ; BIG-ENDIAN-Processor
+-                   `(+ (* 256 (pop ,listvar)) (pop ,listvar))
+-                   ; LITTLE-ENDIAN-Processor
+-                   `(+ (pop ,listvar) (* 256 (pop ,listvar))))))
++                 ;; byte order of the running Lisp, as in CREATE-FUN-OBJ
++                 `(if *big-endian*
++                    ; BIG-ENDIAN-Processor
++                    (+ (* 256 (pop ,listvar)) (pop ,listvar))
++                    ; LITTLE-ENDIAN-Processor
++                    (+ (pop ,listvar) (* 256 (pop ,listvar))))))
+       (pop byte-list) (pop byte-list)
+       (pop byte-list) (pop byte-list)
+       (let* ((req-num (pop2 byte-list))

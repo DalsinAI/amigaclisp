@@ -48,7 +48,7 @@ if [ ! -f "$SRC/.unpacked" ]; then
   mv "$SRC.tmp" "$SRC"
   touch "$SRC/.unpacked"
 fi
-PSET=$(cat "$HERE"/patches/*.patch "$HERE"/host-patches/*.patch "$HERE"/compat/*.c "$HERE/toolchain/config.site" "$HERE/toolchain/fas-be.lisp" "$HERE/build-amiga.sh" 2>/dev/null | sha256sum | cut -c1-16)
+PSET=$(cat "$HERE"/patches/*.patch "$HERE"/host-patches/*.patch "$HERE"/compat/*.c "$HERE/toolchain/config.site" "$HERE/toolchain/fas-be.py" "$HERE/build-amiga.sh" 2>/dev/null | sha256sum | cut -c1-16)
 XSRC=$CACHE/xsrc
 CROSS=$CACHE/cross
 if [ "$(cat "$XSRC/.pset" 2>/dev/null)" != "$PSET" ]; then
@@ -89,27 +89,19 @@ if [ ! -f "$HOST/.done" ]; then
   fi
 fi
 
-# 2b big-endian .fas: a compiled function's code header holds 16-bit counts in
-# the byte order of the Lisp that compiled it, and the host is little-endian.
-# The host CLISP's compiler has the byte-order switch (host-patches/0001):
-# compile the Lisp system again with it set to big-endian (toolchain/fas-be.lisp).
+# 2b big-endian .fas: each compiled function's code header holds 16-bit
+# counts in the byte order of the Lisp that compiled it, and the host is
+# little-endian: swap them (toolchain/fas-be.py). host-patches/0001 makes the
+# compiler itself use the byte order of the Lisp it runs in, so code compiled
+# on the 68k (CLOS dispatch, COMPILE) comes out big-endian there.
 FASBE=$CACHE/fas-be
 if [ "$(cat "$FASBE/.pset" 2>/dev/null)" != "$PSET" ]; then
-  log "big-endian .fas (budget $(left) s)"
   rm -rf "$FASBE"; mkdir -p "$FASBE"
   for f in "$HOST"/*.fas; do
-    n=$(basename "$f" .fas)
-    if [ -f "$HOST/$n.lisp" ]; then echo "$HOST/$n.lisp"; else echo "$HSRC/src/$n.lisp"; fi
-  done > "$CACHE/fas-be.list"
-  if ( cd "$HOST" && FAS_LIST="$CACHE/fas-be.list" FAS_OUT="$FASBE/" \
-       timeout "$(left)" $NICE ./lisp.run -B . -M lispinit.mem -norc -q "$HERE/toolchain/fas-be.lisp" ) > "$CACHE/fas-be.log" 2>&1; then
-    grep '^fas-be:' "$CACHE/fas-be.log" | sed 's/^/[fas] /'
-    echo "$PSET" > "$FASBE/.pset"
-  else
-    tail -40 "$CACHE/fas-be.log"
-    [ "$(left)" -le 5 ] && { log "RESUME: run build-amiga.sh again"; exit 0; }
-    exit 1
-  fi
+    python3 "$HERE/toolchain/fas-be.py" "$f" "$FASBE/$(basename "$f")" > /dev/null || exit 1
+  done
+  log "big-endian .fas: $(ls "$FASBE"/*.fas | wc -l) files"
+  echo "$PSET" > "$FASBE/.pset"
 fi
 
 # 3 cross
