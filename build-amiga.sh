@@ -26,7 +26,7 @@ mkdir -p "$CACHE" "$OUT"
 log() { echo "[$(( $(date +%s) - START )) s] $*"; }
 left() { echo $(( BUDGET - ($(date +%s) - START) )); }
 # show a failed log: its first error with what led to it, then its end
-showlog() { n=$(grep -n -m1 -E ' error:|Error [0-9]' "$1" | cut -d: -f1); [ -n "$n" ] && sed -n "$(( n > 30 ? n - 30 : 1 )),$(( n + 25 ))p" "$1"; echo "-- distinct errors in $1:"; grep -E " error:" "$1" | sed "s/^.*\/\([^/]*:[0-9]*:[0-9]*: error\)/\1/" | sort | uniq -c | sort -rn | head -60; echo "-- end of $1:"; tail -8 "$1"; }
+showlog() { n=$(grep -n -m1 -E ' error:|Error [0-9]' "$1" | cut -d: -f1); [ -n "$n" ] && sed -n "$(( n > 30 ? n - 30 : 1 )),$(( n + 25 ))p" "$1"; echo "-- distinct errors in $1:"; grep -E " error:" "$1" | sed "s/^.*\/\([^/]*:[0-9]*:[0-9]*: error\)/\1/" | sort | uniq -c | sort -rn | head -60; echo "-- undefined symbols:"; grep -o "undefined reference to .*" "$1" | sort | uniq -c; echo "-- end of $1:"; tail -8 "$1"; }
 
 COMMIT=$(sed -n 's/.*"commit": *"\([0-9a-f]*\)".*/\1/p' "$HERE/source.json")
 URL=$(sed -n 's/.*"archive": *"\([^"]*\)".*/\1/p' "$HERE/source.json")
@@ -48,7 +48,7 @@ if [ ! -f "$SRC/.unpacked" ]; then
   mv "$SRC.tmp" "$SRC"
   touch "$SRC/.unpacked"
 fi
-PSET=$(cat "$HERE"/patches/*.patch "$HERE/toolchain/config.site" "$HERE/build-amiga.sh" 2>/dev/null | sha256sum | cut -c1-16)
+PSET=$(cat "$HERE"/patches/*.patch "$HERE"/compat/*.c "$HERE/toolchain/config.site" "$HERE/build-amiga.sh" 2>/dev/null | sha256sum | cut -c1-16)
 XSRC=$CACHE/xsrc
 CROSS=$CACHE/cross
 if [ "$(cat "$XSRC/.pset" 2>/dev/null)" != "$PSET" ]; then
@@ -85,9 +85,12 @@ if [ ! -f "$CROSS/.done" ]; then
   log "$("$CC_AMIGA" --version | head -1)"
   if [ ! -f "$CROSS/Makefile" ]; then
     log "cross configure"
+    # compat/: the POSIX calls libnix lacks (sigprocmask, execl) and the console mode
+    $CC_AMIGA -noixemul -m68040 -specs=$SPECS -O2 -Wall -c "$HERE/compat/amigacompat.c" -o "$CACHE/amigacompat.o"
+    rm -f "$CACHE/libamigacompat.a"; "$STOVE/prefix/bin/m68k-amigaos-ar" rcs "$CACHE/libamigacompat.a" "$CACHE/amigacompat.o"
     rm -rf "$CROSS"; mkdir -p "$CROSS"; cp "$HERE/toolchain/intparam.h" "$CROSS/intparam.h"
     ( cd "$XSRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
-        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" LIBS="-lm" \
+        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" LIBS="$CACHE/libamigacompat.a -lm" \
         $NICE ./configure --host=m68k-amigaos --build="$(sh "$XSRC/src/build-aux/config.guess")" \
         --without-ffcall --without-readline --without-dynamic-modules --ignore-absence-of-libsigsegv \
         --disable-nls --disable-mmap --without-unicode "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
