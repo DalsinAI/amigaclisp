@@ -26,7 +26,7 @@ mkdir -p "$CACHE" "$OUT"
 log() { echo "[$(( $(date +%s) - START )) s] $*"; }
 left() { echo $(( BUDGET - ($(date +%s) - START) )); }
 # show a failed log: its first error with what led to it, then its end
-showlog() { n=$(grep -n -m1 -E 'error|Error [0-9]' "$1" | cut -d: -f1); [ -n "$n" ] && sed -n "$(( n > 30 ? n - 30 : 1 )),$(( n + 25 ))p" "$1"; echo "-- end of $1:"; tail -15 "$1"; }
+showlog() { n=$(grep -n -m1 -E ' error:|Error [0-9]' "$1" | cut -d: -f1); [ -n "$n" ] && sed -n "$(( n > 30 ? n - 30 : 1 )),$(( n + 25 ))p" "$1"; echo "-- end of $1:"; tail -15 "$1"; }
 
 COMMIT=$(sed -n 's/.*"commit": *"\([0-9a-f]*\)".*/\1/p' "$HERE/source.json")
 URL=$(sed -n 's/.*"archive": *"\([^"]*\)".*/\1/p' "$HERE/source.json")
