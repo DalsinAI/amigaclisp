@@ -1,0 +1,31 @@
+--- a/src/lispbibl.d	2026-11-05 15:47:35.499535775 +0000
++++ b/src/lispbibl.d	2026-11-05 15:47:35.535962954 +0000
+@@ -1153,7 +1153,7 @@
+ #else
+   #error No 16 bit integer type? -- Which Integer-type has 16 Bit?
+ #endif
+-#if (long_bitsize==32)
++#if (long_bitsize==32) && !defined(UNIX_AMIGAOS) /* AmigaOS: exec/types.h has ULONG as unsigned int */
+   typedef long           SLONG;
+   typedef unsigned long  ULONG;
+ #elif (int_bitsize==32)
+@@ -19174,7 +19174,7 @@
+ /* is used by TIME and by the FFI */
+ %% exportF(object,Q_to_I,(sint64 val));
+ 
+-#if defined(intQsize) || (intVsize>32) || defined(WIDE_HARD) || (SIZEOF_OFF_T > 4) || (SIZEOF_INO_T > 4)
++#if defined(intQsize) || (intVsize>32) || defined(WIDE_HARD) || (SIZEOF_OFF_T > 4) || (SIZEOF_INO_T > 4) || defined(UNIX_AMIGAOS) /* ROOM in debug.d needs it */
+   /* Converts an unsigned quadword into an Integer >=0.
+    UQ_to_I(val)
+    > val: value of the Integer, an unsigned 64-bit-Integer.
+--- a/src/intelem.d	2026-11-05 15:47:35.474303131 +0000
++++ b/src/intelem.d	2026-11-05 15:47:35.541841608 +0000
+@@ -840,7 +840,7 @@
+   #undef FILL_1_DIGIT
+ }
+ 
+-#if defined(intQsize) || (intVsize>32) || defined(WIDE_HARD) || (SIZEOF_OFF_T > 4) || (SIZEOF_INO_T > 4)
++#if defined(intQsize) || (intVsize>32) || defined(WIDE_HARD) || (SIZEOF_OFF_T > 4) || (SIZEOF_INO_T > 4) || defined(UNIX_AMIGAOS)
+ /* converts unsigned quadword into integer >=0 .
+  UQ_to_I(value)
+  > value: value of the integer, an unsigned 64-bit-integer.

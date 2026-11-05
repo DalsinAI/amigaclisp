@@ -2,3 +2,5 @@
 # intparam.h: CLISP's cross probe fails on the unsigned types; build-amiga.sh puts
 # toolchain/intparam.h in the build folder instead.
 cl_cv_file_intparam_h=1
+# libnix has <termios.h> but no tcgetattr/tcsetattr: the console runs in line mode.
+ac_cv_header_termios_h=no
