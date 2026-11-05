@@ -9,7 +9,7 @@
 #   2 host    a native CLISP, used to compile the Lisp sources to .fas
 #             (.fas byte code is the same on every platform)
 #   3 cross   lisp.run for m68k-amigaos with this port's patches
-#   4 package lisp.run, the .fas files and lab/MakeImage for the lab, where
+#   4 package lisp.run, the .fas files and lab/ (Install, CLISP, MakeImage), where
 #             lispinit.mem is saved (a memory image must be made on the target)
 #
 # Copyright (c) 2026 AmigaChrome Team. GPL-2.0-or-later, as CLISP.
@@ -154,7 +154,7 @@ PKG=$OUT/AmigaCLISP
 rm -rf "$PKG"; mkdir -p "$PKG/full"
 cp "$CROSS/lisp.run" "$PKG/lisp"
 cp "$HOST"/*.fas "$PKG/full/"
-cp "$HERE/lab/MakeImage" "$PKG/"; cp "$HERE/lab/makeimage.lisp" "$PKG/full/"
+cp "$HERE/lab/MakeImage" "$HERE/lab/Install" "$HERE/lab/CLISP" "$PKG/"; cp "$HERE/lab/makeimage.lisp" "$PKG/full/"
 OBJDUMP="$STOVE/prefix/bin/m68k-amigaos-objdump"
 # symbol map for crash addresses ([amiga abort] lines give an address and main's)
 "$STOVE/prefix/bin/m68k-amigaos-nm" -n "$PKG/lisp" > "$OUT/lisp.map" 2>/dev/null || true

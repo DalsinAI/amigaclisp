@@ -1,12 +1,17 @@
-; AmigaCLISP: save lispinit.mem on the target (a memory image is made where it runs).
-; Run from the AmigaCLISP folder: Execute MakeImage
+; AmigaCLISP: save CLISP:lispinit.mem, the memory image CLISP starts from.
+; It is made on the Amiga it runs on (a few minutes on a 68040): CLISP does it
+; on first start, or run Execute CLISP:MakeImage after an update.
 Stack 2000000
-CD full
-/lisp -B "" -norc makeimage.lisp
-CD /
-If EXISTS full/lispinit.mem
-  Rename full/lispinit.mem lispinit.mem
-  Echo "MakeImage: lispinit.mem saved"
+Set clispcd "`CD`"
+CD CLISP:full
+Delete CLISP:lispinit.mem QUIET >NIL:
+Echo "MakeImage: loading CLISP to save its image, please wait..."
+CLISP:lisp -B "" -norc makeimage.lisp
+CD "$clispcd"
+UnSet clispcd
+If EXISTS CLISP:full/lispinit.mem
+  Rename CLISP:full/lispinit.mem CLISP:lispinit.mem
+  Echo "MakeImage: CLISP:lispinit.mem saved"
 Else
-  Echo "MakeImage: no lispinit.mem"
+  Echo "MakeImage: no image saved"
 EndIf

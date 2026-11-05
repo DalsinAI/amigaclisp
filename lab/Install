@@ -1,0 +1,13 @@
+; AmigaCLISP: run once from the AmigaCLISP folder: Execute Install
+; Assigns CLISP: here (now and in S:User-Startup) and saves the memory image.
+Assign CLISP: ""
+Protect CLISP:CLISP +s QUIET
+Set clispdir "`CD`"
+Search S:User-Startup "Assign CLISP:" QUIET >NIL:
+If WARN
+  Echo "Assign CLISP: *"$clispdir*"" >>S:User-Startup
+  Echo "Install: added Assign CLISP: to S:User-Startup"
+EndIf
+UnSet clispdir
+Execute CLISP:MakeImage
+Echo "Install: done. Start CLISP with CLISP:CLISP"
