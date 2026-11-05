@@ -1,0 +1,20 @@
+--- a/src/gllib/sys_select.in.h	2026-11-05 15:18:30.967877280 +0000
++++ b/src/gllib/sys_select.in.h	2026-11-05 15:18:31.056249800 +0000
+@@ -79,7 +79,7 @@
+    But avoid namespace pollution on glibc systems, a circular include
+    <sys/select.h> -> <sys/time.h> -> <sys/select.h> on FreeBSD 13.1, and
+    "unknown type name" problems on Cygwin.  */
+-# if !(defined __GLIBC__ || defined __FreeBSD__ || defined __CYGWIN__)
++# if !(defined __GLIBC__ || defined __FreeBSD__ || defined __CYGWIN__ || defined __amigaos__)
+ #  include <sys/time.h>
+ # endif
+ 
+@@ -99,7 +99,7 @@
+    undeclared error occurs in <pthread.h>.
+    Do this after the include_next (for the sake of OpenBSD 5.0) but before
+    the split double-inclusion guard (for the sake of Solaris).  */
+-#if !((defined __GLIBC__ || defined __CYGWIN__ || defined __KLIBC__) \
++#if !((defined __GLIBC__ || defined __CYGWIN__ || defined __KLIBC__ || defined __amigaos__) \
+       && !defined __UCLIBC__)
+ # include <signal.h>
+ #endif
