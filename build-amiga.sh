@@ -113,6 +113,7 @@ if [ ! -f "$CROSS/.done" ]; then
   log "cross make lisp.run (budget $(left) s)"
   if ( cd "$CROSS" && timeout "$(left)" $NICE make -k -j"$JOBS" lisp.run ) > "$CACHE/cross-make.log" 2>&1; then
     touch "$CROSS/.done"; log "lisp.run built"
+    grep -m1 -E ' -c [^ ]*spvw\.c' "$CACHE/cross-make.log" | sed 's/^/[cc] /' | cut -c1-1500
   else
     showlog "$CACHE/cross-make.log"
     [ "$(left)" -le 5 ] && { log "RESUME: run build-amiga.sh again"; exit 0; }
