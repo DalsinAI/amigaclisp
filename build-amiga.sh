@@ -48,7 +48,7 @@ if [ ! -f "$SRC/.unpacked" ]; then
   mv "$SRC.tmp" "$SRC"
   touch "$SRC/.unpacked"
 fi
-PSET=$(cat "$HERE"/patches/*.patch "$HERE"/compat/*.c "$HERE/toolchain/config.site" "$HERE/build-amiga.sh" 2>/dev/null | sha256sum | cut -c1-16)
+PSET=$(cat "$HERE"/patches/*.patch "$HERE"/compat/*.c "$HERE/toolchain/config.site" "$HERE/toolchain/fas-be.lisp" "$HERE/build-amiga.sh" 2>/dev/null | sha256sum | cut -c1-16)
 XSRC=$CACHE/xsrc
 CROSS=$CACHE/cross
 if [ "$(cat "$XSRC/.pset" 2>/dev/null)" != "$PSET" ]; then
@@ -74,6 +74,31 @@ if [ ! -f "$HOST/.done" ]; then
     touch "$HOST/.done"; log "host CLISP built"
   else
     showlog "$CACHE/host-make.log"
+    [ "$(left)" -le 5 ] && { log "RESUME: run build-amiga.sh again"; exit 0; }
+    exit 1
+  fi
+fi
+
+# 2b big-endian .fas: a compiled function's code header holds 16-bit counts in
+# the byte order of the Lisp that compiled it, and the host is little-endian.
+# Recompile the Lisp system in the host CLISP with patch 0012's compiler set to
+# write big-endian headers (toolchain/fas-be.lisp).
+FASBE=$CACHE/fas-be
+if [ "$(cat "$FASBE/.pset" 2>/dev/null)" != "$PSET" ]; then
+  log "big-endian .fas (budget $(left) s)"
+  rm -rf "$FASBE"; mkdir -p "$FASBE"
+  for f in "$HOST"/*.fas; do
+    n=$(basename "$f" .fas)
+    if [ "$n" = compiler ]; then echo "$XSRC/src/compiler.lisp"
+    elif [ -f "$HOST/$n.lisp" ]; then echo "$HOST/$n.lisp"
+    else echo "$XSRC/src/$n.lisp"; fi
+  done > "$CACHE/fas-be.list"
+  if ( cd "$HOST" && FAS_COMPILER="$XSRC/src/compiler.lisp" FAS_LIST="$CACHE/fas-be.list" FAS_OUT="$FASBE/" \
+       timeout "$(left)" $NICE ./lisp.run -B . -M lispinit.mem -norc -q "$HERE/toolchain/fas-be.lisp" ) > "$CACHE/fas-be.log" 2>&1; then
+    grep '^fas-be:' "$CACHE/fas-be.log" | sed 's/^/[fas] /'
+    echo "$PSET" > "$FASBE/.pset"
+  else
+    tail -40 "$CACHE/fas-be.log"
     [ "$(left)" -le 5 ] && { log "RESUME: run build-amiga.sh again"; exit 0; }
     exit 1
   fi
@@ -136,7 +161,7 @@ fi
 PKG=$OUT/AmigaCLISP
 rm -rf "$PKG"; mkdir -p "$PKG/full"
 cp "$CROSS/lisp.run" "$PKG/lisp"
-cp "$HOST"/*.fas "$PKG/full/"
+cp "$FASBE"/*.fas "$PKG/full/"
 cp "$HERE/lab/MakeImage" "$PKG/"; cp "$HERE/lab/makeimage.lisp" "$PKG/full/"
 OBJDUMP="$STOVE/prefix/bin/m68k-amigaos-objdump"
 # symbol map for crash addresses ([amiga abort] lines give an address and main's)

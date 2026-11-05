@@ -1,0 +1,39 @@
+--- a/src/compiler.lisp
++++ b/src/compiler.lisp
+@@ -99,6 +99,16 @@
+ 
+ ;; T if called by COMPILE-FILE or LOAD :COMPILE
+ (defvar *compiling-from-file*)
++;; Byte order of the code headers COMPILE-FILE writes. It is the running
++;; Lisp's own unless set otherwise, so a little-endian host can make .fas
++;; files for a big-endian target (AmigaOS on the 68k): code compiled to be
++;; run here and now (COMPILE, no *fasoutput-stream*) keeps the host's order.
++(defvar *fas-big-endian* *big-endian*)
++(defvar *fasoutput-stream*)
++(defun code-big-endian-p ()
++  (if (and (boundp '*fasoutput-stream*) *fasoutput-stream*)
++    *fas-big-endian*
++    *big-endian*))
+ ;; how do we determine what will happen with the compiled code,
+ ;; i.e., will it be evaluated right away or loaded before that?
+ ;; if we are called by COMPILE-FILE, we are writing to *fasoutput-stream*,
+@@ -10728,12 +10738,13 @@
+       :name fname
+       :code
+         (macrolet ((as-word (anz)
+-                     (if *big-endian*
+-                       ;; BIG-ENDIAN-Processor
+-                       `(floor ,anz 256)
+-                       ;; LITTLE-ENDIAN-Processor
+-                       `(multiple-value-bind (q r) (floor ,anz 256)
+-                         (values r q)))))
++                     ;; decided when the code is made, see *FAS-BIG-ENDIAN*
++                     `(if (code-big-endian-p)
++                        ;; BIG-ENDIAN-Processor
++                        (floor ,anz 256)
++                        ;; LITTLE-ENDIAN-Processor
++                        (multiple-value-bind (q r) (floor ,anz 256)
++                          (values r q)))))
+           (multiple-value-call #'list*
+             (as-word (car SPdepth))
+             (as-word (cdr SPdepth))
