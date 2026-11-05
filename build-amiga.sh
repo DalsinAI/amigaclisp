@@ -96,6 +96,59 @@ fi
 # COMPILE) is big-endian there; upstream fixed that order when compiler.lisp
 # was itself compiled, on the little-endian host.
 
+# 3 cross
+# Object model: WIDE_SOFT (64-bit objects on a 32-bit CPU), the one model that
+# makes no assumptions about where AmigaOS puts memory (Fast RAM is at
+# 0x40000000 and up). It is what CLISP picks here anyway; spelt out so it stays.
+# NO_ASM keeps a4 (CLISP's STACK register on m68k) free.
+OPT=${CLISP_OPT:--O1}   # -O2: gc_mark aborts while loading compiler.fas (likely a miscompile, to chase); CLISP_OPT overrides
+OBJMODEL="-DNO_ADDRESS_SPACE_ASSUMPTIONS -DNO_ASM -DNO_ARI_ASM -DNO_SP_ASM -DNO_GENERATIONAL_GC"
+# file calls that take a path go through compat/unixpath.c
+WRAPS="-Wl,--wrap=open,--wrap=stat,--wrap=lstat,--wrap=access,--wrap=opendir,--wrap=chdir,--wrap=getcwd"
+WRAPS="$WRAPS,--wrap=mkdir,--wrap=rmdir,--wrap=unlink,--wrap=rename,--wrap=realpath,--wrap=readlink,--wrap=abort"
+if [ ! -f "$CROSS/.done" ]; then
+  [ -x "$CC_AMIGA" ] || { echo "no compiler at $CC_AMIGA"; exit 1; }
+  log "$("$CC_AMIGA" --version | head -1)"
+  if [ ! -f "$CROSS/Makefile" ]; then
+    log "cross configure"
+    # compat/: the POSIX calls libnix lacks (sigprocmask, execl), the console mode,
+    # and unixpath.c, the Unix view of AmigaDOS paths behind the wrapped file calls
+    rm -f "$CACHE/libamigacompat.a"
+    for c in amigacompat unixpath; do
+      $CC_AMIGA -noixemul -m68040 -specs=$SPECS -O2 -Wall -c "$HERE/compat/$c.c" -o "$CACHE/$c.o"
+      "$STOVE/prefix/bin/m68k-amigaos-ar" rcs "$CACHE/libamigacompat.a" "$CACHE/$c.o"
+    done
+    $CC_AMIGA -noixemul -m68040 -specs=$SPECS -O2 -Wall -c "$HERE/compat/exittrace.c" -o "$CACHE/exittrace.o"
+    rm -rf "$CROSS"; mkdir -p "$CROSS"; cp "$HERE/toolchain/intparam.h" "$CROSS/intparam.h"
+    ( cd "$XSRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
+        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" CPPFLAGS="$OBJMODEL" LDFLAGS="$WRAPS -Wl,-Map=$CACHE/lisp.ldmap" LIBS="$CACHE/libamigacompat.a -lm" \
+        $NICE ./configure --host=m68k-amigaos --build="$(sh "$XSRC/src/build-aux/config.guess")" \
+        --without-ffcall --without-readline --without-dynamic-modules --ignore-absence-of-libsigsegv \
+        --disable-nls --disable-mmap "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
+      || { tail -60 "$CACHE/cross-configure.log"; exit 1; }
+  fi
+  # the build's own tools (comment5, gctrigger, varbrace, ...) run on the build machine:
+  # take the host build's, so make doesn't make them with the cross compiler
+  for u in comment5 gctrigger varbrace ccpaux txt2c ccmp2c; do
+    [ -x "$HOST/$u" ] && [ ! -e "$CROSS/.tools" ] && cp -p "$HOST/$u" "$CROSS/$u" && touch "$CROSS/$u"
+  done
+  touch "$CROSS/.tools"
+  # makemake puts its own -O2 in Z_CFLAGS, after CFLAGS: OPT takes its place
+  sed -i "/^Z_CFLAGS *=/s/ -O2\b/ $OPT/" "$CROSS/Makefile"
+  # exit() is wrapped for lisp only: configure's test programs call it too
+  grep -q 'wrap=exit' "$CROSS/Makefile" || sed -i "/^LDFLAGS *=/s|\$| -Wl,--wrap=exit $CACHE/exittrace.o|" "$CROSS/Makefile"
+  grep -E '^(Z_CFLAGS|CFLAGS|CPPFLAGS|LDFLAGS) *=' "$CROSS/Makefile" | sed 's/^/[make] /'
+  log "cross make lisp.run (budget $(left) s)"
+  if ( cd "$CROSS" && timeout "$(left)" $NICE make -k -j"$JOBS" lisp.run ) > "$CACHE/cross-make.log" 2>&1; then
+    touch "$CROSS/.done"; log "lisp.run built"
+    grep -m1 -E ' -c [^ ]*spvw\.c' "$CACHE/cross-make.log" | sed 's/^/[cc] /' | cut -c1-1500
+  else
+    showlog "$CACHE/cross-make.log"
+    [ "$(left)" -le 5 ] && { log "RESUME: run build-amiga.sh again"; exit 0; }
+    exit 1
+  fi
+fi
+
 # 4 package
 PKG=$OUT/AmigaCLISP
 rm -rf "$PKG"; mkdir -p "$PKG/full"
