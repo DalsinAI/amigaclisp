@@ -87,7 +87,7 @@ if [ ! -f "$CROSS/.done" ]; then
     log "cross configure"
     rm -rf "$CROSS"; mkdir -p "$CROSS"; cp "$HERE/toolchain/intparam.h" "$CROSS/intparam.h"
     ( cd "$XSRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
-        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" \
+        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" LIBS="-lm" \
         $NICE ./configure --host=m68k-amigaos --build="$(sh "$XSRC/src/build-aux/config.guess")" \
         --without-ffcall --without-readline --without-dynamic-modules --ignore-absence-of-libsigsegv \
         --disable-nls --disable-mmap --without-unicode "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
