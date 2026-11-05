@@ -68,3 +68,13 @@ int __wrap_fcntl (int fd, int cmd, ...)
   }
   return r;
 }
+
+/* LISTEN on a standard handle (patch 0011): 1 when a key is waiting at the
+   console, 0 when none is, -1 when it is no console (CLISP's own test runs). */
+int amiga_listen (int fd)
+{
+  BPTR h = fd == 0 ? Input() : 0;
+  if (h == 0 || !IsInteractive(h))
+    return -1;
+  return WaitForChar(h, 0) ? 1 : 0;
+}
