@@ -1,0 +1,23 @@
+--- a/src/socket.d	2026-11-05 15:30:30.827030580 +0000
++++ b/src/socket.d	2026-11-05 15:30:30.868593370 +0000
+@@ -77,6 +77,20 @@
+   end_system_call();
+   hostname[MAXHOSTNAMELEN] = '\0';
+ }
++#elif defined(UNIX_AMIGAOS)
++/* AmigaOS: gethostname() belongs to bsdsocket.library, which may not be
++   running. Take ENV:HOSTNAME when it is set, else "localhost". */
++static void get_hostname (char *hostname) {
++  begin_system_call();
++  {
++    const char *name = getenv("HOSTNAME");
++    if (name == NULL || name[0] == '\0')
++      name = "localhost";
++    strncpy(hostname,name,MAXHOSTNAMELEN);
++  }
++  end_system_call();
++  hostname[MAXHOSTNAMELEN] = '\0';
++}
+ #else
+   #error get_hostname is not defined
+ #endif

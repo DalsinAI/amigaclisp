@@ -1,2 +1,4 @@
 # AmigaOS 3.x with libnix: answers configure can't find out when cross-compiling.
-# Filled in as the cross configure is worked through.
+# intparam.h: CLISP's cross probe fails on the unsigned types; build-amiga.sh puts
+# toolchain/intparam.h in the build folder instead.
+cl_cv_file_intparam_h=1
