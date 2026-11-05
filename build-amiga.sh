@@ -80,17 +80,24 @@ if [ ! -f "$HOST/.done" ]; then
 fi
 
 # 3 cross
+# file calls that take a path go through compat/unixpath.c
+WRAPS="-Wl,--wrap=open,--wrap=stat,--wrap=lstat,--wrap=access,--wrap=opendir,--wrap=chdir,--wrap=getcwd"
+WRAPS="$WRAPS,--wrap=mkdir,--wrap=rmdir,--wrap=unlink,--wrap=rename,--wrap=realpath,--wrap=readlink"
 if [ ! -f "$CROSS/.done" ]; then
   [ -x "$CC_AMIGA" ] || { echo "no compiler at $CC_AMIGA"; exit 1; }
   log "$("$CC_AMIGA" --version | head -1)"
   if [ ! -f "$CROSS/Makefile" ]; then
     log "cross configure"
-    # compat/: the POSIX calls libnix lacks (sigprocmask, execl) and the console mode
-    $CC_AMIGA -noixemul -m68040 -specs=$SPECS -O2 -Wall -c "$HERE/compat/amigacompat.c" -o "$CACHE/amigacompat.o"
-    rm -f "$CACHE/libamigacompat.a"; "$STOVE/prefix/bin/m68k-amigaos-ar" rcs "$CACHE/libamigacompat.a" "$CACHE/amigacompat.o"
+    # compat/: the POSIX calls libnix lacks (sigprocmask, execl), the console mode,
+    # and unixpath.c, the Unix view of AmigaDOS paths behind the wrapped file calls
+    rm -f "$CACHE/libamigacompat.a"
+    for c in amigacompat unixpath; do
+      $CC_AMIGA -noixemul -m68040 -specs=$SPECS -O2 -Wall -c "$HERE/compat/$c.c" -o "$CACHE/$c.o"
+      "$STOVE/prefix/bin/m68k-amigaos-ar" rcs "$CACHE/libamigacompat.a" "$CACHE/$c.o"
+    done
     rm -rf "$CROSS"; mkdir -p "$CROSS"; cp "$HERE/toolchain/intparam.h" "$CROSS/intparam.h"
     ( cd "$XSRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
-        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" LIBS="$CACHE/libamigacompat.a -lm" \
+        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" LDFLAGS="$WRAPS" LIBS="$CACHE/libamigacompat.a -lm" \
         $NICE ./configure --host=m68k-amigaos --build="$(sh "$XSRC/src/build-aux/config.guess")" \
         --without-ffcall --without-readline --without-dynamic-modules --ignore-absence-of-libsigsegv \
         --disable-nls --disable-mmap --without-unicode "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
