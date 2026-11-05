@@ -88,7 +88,7 @@ OPT=${CLISP_OPT:--O1}   # below -O2 while the GC crash in compiler.fas is chased
 OBJMODEL="-DNO_ADDRESS_SPACE_ASSUMPTIONS -DNO_ASM -DNO_ARI_ASM -DNO_SP_ASM -DNO_GENERATIONAL_GC"
 # file calls that take a path go through compat/unixpath.c
 WRAPS="-Wl,--wrap=open,--wrap=stat,--wrap=lstat,--wrap=access,--wrap=opendir,--wrap=chdir,--wrap=getcwd"
-WRAPS="$WRAPS,--wrap=mkdir,--wrap=rmdir,--wrap=unlink,--wrap=rename,--wrap=realpath,--wrap=readlink,--wrap=abort"
+WRAPS="$WRAPS,--wrap=mkdir,--wrap=rmdir,--wrap=unlink,--wrap=rename,--wrap=realpath,--wrap=readlink,--wrap=abort,--wrap=exit"
 if [ ! -f "$CROSS/.done" ]; then
   [ -x "$CC_AMIGA" ] || { echo "no compiler at $CC_AMIGA"; exit 1; }
   log "$("$CC_AMIGA" --version | head -1)"
