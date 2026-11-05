@@ -25,6 +25,8 @@ NICE="nice -n 19"
 mkdir -p "$CACHE" "$OUT"
 log() { echo "[$(( $(date +%s) - START )) s] $*"; }
 left() { echo $(( BUDGET - ($(date +%s) - START) )); }
+# show a failed log: its first error with what led to it, then its end
+showlog() { n=$(grep -n -m1 -E 'error|Error [0-9]' "$1" | cut -d: -f1); [ -n "$n" ] && sed -n "$(( n > 30 ? n - 30 : 1 )),$(( n + 25 ))p" "$1"; echo "-- end of $1:"; tail -15 "$1"; }
 
 COMMIT=$(sed -n 's/.*"commit": *"\([0-9a-f]*\)".*/\1/p' "$HERE/source.json")
 URL=$(sed -n 's/.*"archive": *"\([^"]*\)".*/\1/p' "$HERE/source.json")
@@ -71,7 +73,7 @@ if [ ! -f "$HOST/.done" ]; then
   if ( cd "$HOST" && timeout "$(left)" $NICE make -j"$JOBS" ) > "$CACHE/host-make.log" 2>&1; then
     touch "$HOST/.done"; log "host CLISP built"
   else
-    tail -30 "$CACHE/host-make.log"
+    showlog "$CACHE/host-make.log"
     [ "$(left)" -le 5 ] && { log "RESUME: run build-amiga.sh again"; exit 0; }
     exit 1
   fi
@@ -95,7 +97,7 @@ if [ ! -f "$CROSS/.done" ]; then
   if ( cd "$CROSS" && timeout "$(left)" $NICE make -j"$JOBS" lisp.run ) > "$CACHE/cross-make.log" 2>&1; then
     touch "$CROSS/.done"; log "lisp.run built"
   else
-    tail -60 "$CACHE/cross-make.log"
+    showlog "$CACHE/cross-make.log"
     [ "$(left)" -le 5 ] && { log "RESUME: run build-amiga.sh again"; exit 0; }
     exit 1
   fi
