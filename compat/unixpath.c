@@ -8,6 +8,7 @@
      /Vol/a/b    -> Vol:a/b        /Vol      -> Vol:
      a/../b      -> a//b           ../x      -> /x       ./x -> x
      Vol:a/b     -> Vol:a/b        (already AmigaDOS: left as it is)
+     /Vol/d/T:x  -> T:x            (an AmigaDOS name CLISP took as relative)
 
    Paths coming back (getcwd, realpath) go the other way: "Vol:a/b" -> "/Vol/a/b".
    "/" itself is the list of volumes: it stats as a directory and nothing else. */
@@ -42,9 +43,14 @@ static int to_amiga (const char *in, char *out, size_t size)
   size_t n = 0;
   int need_sep = 0;
   const char *p = in;
-  if (strchr(in, ':') != NULL) {               /* already AmigaDOS */
-    if (strlen(in) >= size) goto toolong;
-    strcpy(out, in);
+  const char *colon = strchr(in, ':');
+  if (colon != NULL) {                          /* already AmigaDOS */
+    /* CLISP makes a relative "T:x" absolute: "/Vol/dir/T:x" -> "T:x" */
+    const char *start = in;
+    for (const char *q = in; q < colon; q++)
+      if (*q == '/') start = q + 1;
+    if (strlen(start) >= size) goto toolong;
+    strcpy(out, start);
     return 0;
   }
   if (*p == '/') {                              /* absolute: first component is the volume */
