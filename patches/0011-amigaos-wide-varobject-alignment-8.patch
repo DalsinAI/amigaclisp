@@ -1,0 +1,16 @@
+--- a/src/lispbibl.d
++++ b/src/lispbibl.d
+@@ -6130,6 +6130,13 @@
+   #undef varobject_alignment
+   #define varobject_alignment  4
+ #endif
++#if defined(UNIX_AMIGAOS) && defined(WIDE_SOFT) && (varobject_alignment < 8)
++  /* AmigaOS: 64-bit objects on the 68k (whose gcc aligns them only to 2):
++     keep varobjects 8-aligned, as on the 64-bit and GENERATIONAL_GC WIDE
++     platforms where WIDE objects are tested. */
++  #undef varobject_alignment
++  #define varobject_alignment  8
++#endif
+ #if ((defined(GENERATIONAL_GC) && defined(WIDE)) || defined(KERNELVOID32_HEAPCODES) || defined(GENERIC64_HEAPCODES)) && (varobject_alignment < 8)
+   #undef varobject_alignment
+   #define varobject_alignment  8

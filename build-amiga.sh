@@ -84,7 +84,7 @@ fi
 # makes no assumptions about where AmigaOS puts memory (Fast RAM is at
 # 0x40000000 and up). It is what CLISP picks here anyway; spelt out so it stays.
 # NO_ASM keeps a4 (CLISP's STACK register on m68k) free.
-OPT=${CLISP_OPT:--O0}   # below -O2 while miscompiles are chased: at -O2 gc_mark aborts in compiler.fas, at -O1 ADD-METHOD gets too many arguments in clos-genfun4.fas
+OPT=${CLISP_OPT:--O1}   # below -O2 while miscompiles are chased: at -O2 gc_mark aborts in compiler.fas, at -O1 ADD-METHOD gets too many arguments in clos-genfun4.fas
 OBJMODEL="-DNO_ADDRESS_SPACE_ASSUMPTIONS -DNO_ASM -DNO_ARI_ASM -DNO_SP_ASM -DNO_GENERATIONAL_GC"
 # file calls that take a path go through compat/unixpath.c
 WRAPS="-Wl,--wrap=open,--wrap=stat,--wrap=lstat,--wrap=access,--wrap=opendir,--wrap=chdir,--wrap=getcwd"
