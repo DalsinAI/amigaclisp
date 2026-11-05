@@ -1,0 +1,18 @@
+--- a/src/lispbibl.d
++++ b/src/lispbibl.d
+@@ -1586,7 +1586,14 @@
+ 
+ /* From here on 'uintXY' and 'sintXY' mean unsigned or signed integer types,
+  with word sizes X or Y (X,Y=B,W,L). */
+-#if defined(M68K)
++#if defined(M68K) && defined(UNIX_AMIGAOS)
++  /* AmigaOS on the 68040: 32-bit counts (uintC, uintWL), as on every other
++   current platform. The 16-bit counts below are from 68000 days and no
++   longer hold up (APPLY saw "too many arguments" for two). */
++  #define intBWsize intBsize
++  #define intWLsize intLsize
++  #define intBWLsize intLsize
++#elif defined(M68K)
+   /* The 68000 offers good processing of uintB and uintW, especially
+    DBRA-commands for uintW. */
+   #define intBWsize intBsize
