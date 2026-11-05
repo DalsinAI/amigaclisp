@@ -109,6 +109,7 @@ if [ ! -f "$CROSS/.done" ]; then
     [ -x "$HOST/$u" ] && [ ! -e "$CROSS/.tools" ] && cp -p "$HOST/$u" "$CROSS/$u" && touch "$CROSS/$u"
   done
   touch "$CROSS/.tools"
+  grep -E '^(CFLAGS|CPPFLAGS|LDFLAGS) *=' "$CROSS/Makefile" | sed 's/^/[make] /'
   log "cross make lisp.run (budget $(left) s)"
   if ( cd "$CROSS" && timeout "$(left)" $NICE make -k -j"$JOBS" lisp.run ) > "$CACHE/cross-make.log" 2>&1; then
     touch "$CROSS/.done"; log "lisp.run built"
