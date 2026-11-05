@@ -85,7 +85,7 @@ if [ ! -f "$CROSS/.done" ]; then
   log "$("$CC_AMIGA" --version | head -1)"
   if [ ! -f "$CROSS/Makefile" ]; then
     log "cross configure"
-    rm -rf "$CROSS"
+    rm -rf "$CROSS"; mkdir -p "$CROSS"; cp "$HERE/toolchain/intparam.h" "$CROSS/intparam.h"
     ( cd "$XSRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
         CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" \
         $NICE ./configure --host=m68k-amigaos --build="$(sh "$XSRC/src/build-aux/config.guess")" \
@@ -93,7 +93,6 @@ if [ ! -f "$CROSS/.done" ]; then
         --disable-nls --disable-mmap --without-unicode "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
       || { tail -60 "$CACHE/cross-configure.log"; exit 1; }
   fi
-  [ -f "$CROSS/intparam.h" ] || cp "$HERE/toolchain/intparam.h" "$CROSS/intparam.h"
   # the build's own tools (comment5, gctrigger, varbrace, ...) run on the build machine:
   # take the host build's, so make doesn't make them with the cross compiler
   for u in comment5 gctrigger varbrace ccpaux txt2c ccmp2c; do
