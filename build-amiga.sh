@@ -154,7 +154,7 @@ PKG=$OUT/AmigaCLISP
 rm -rf "$PKG"; mkdir -p "$PKG/full"
 cp "$CROSS/lisp.run" "$PKG/lisp"
 cp "$HOST"/*.fas "$PKG/full/"
-cp "$HERE/lab/MakeImage" "$HERE/lab/Install" "$HERE/lab/CLISP" "$PKG/"; cp "$HERE/lab/makeimage.lisp" "$PKG/full/"
+cp "$HERE/lab/MakeImage" "$HERE/lab/Install" "$HERE/lab/CLISP" "$HERE/lab/ReadMe" "$PKG/"; cp "$HERE/lab/makeimage.lisp" "$PKG/full/"
 OBJDUMP="$STOVE/prefix/bin/m68k-amigaos-objdump"
 # symbol map for crash addresses ([amiga abort] lines give an address and main's)
 "$STOVE/prefix/bin/m68k-amigaos-nm" -n "$PKG/lisp" > "$OUT/lisp.map" 2>/dev/null || true
