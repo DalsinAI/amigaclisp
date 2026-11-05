@@ -1,0 +1,4 @@
+; AmigaCLISP: save lispinit.mem on the target (a memory image is made where it runs).
+; Run from the AmigaCLISP folder: Execute MakeImage
+Stack 1048576
+lisp -B PROGDIR: -M none -norc -x "(and (load *"full/init.fas*") (ext::saveinitmem) (ext::exit)) (ext::exit t)"

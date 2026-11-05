@@ -1,14 +1,104 @@
 #!/bin/sh
-# Probe: report the Cradle build environment for the CLISP port.
-echo "pwd=$(pwd) STOVE=$STOVE OUT=$OUT HOME=$HOME user=$(id -un) host=$(hostname)"
-nproc; uname -a; df -h . "$OUT" 2>/dev/null | tail -2
-ls "$STOVE" "$STOVE/prefix/bin" 2>&1 | head -40
-"$STOVE/prefix/bin/m68k-amigaos-gcc" --version 2>&1 | head -1
-command -v gcc make autoconf clisp sbcl python3 curl git xz
-gcc --version 2>&1 | head -1
-ls -d "$STOVE"/prefix/m68k-amigaos/ndk-include 2>&1
-ls "$HOME"/AmiCradle-dev/cradle-builds 2>&1 | head
-timeout 20 git ls-remote https://gitlab.com/gnu-clisp/clisp.git HEAD 2>&1 | head -2
-timeout 20 curl -sSI https://gitlab.com/gnu-clisp/clisp/-/archive/db78dbd2cf08910596aeda694a23773346e703b0/clisp.tar.gz 2>&1 | head -1
-ls /run/media/da1ek/DevDrive 2>&1 | head
-mkdir -p "$OUT" && echo probe > "$OUT/probe.txt"
+# AmigaCLISP: GNU CLISP for 68k AmigaOS 3.x (68040, soft float).
+# Cradle entry: STOVE= (stove folder) and OUT= (output folder) are set by stove_build.
+# Each run carries on from where the last one stopped, so call it until it says DONE
+# (a Cradle job lasts 900 s at most). State is kept in CLISP_CACHE.
+#
+# Stages:
+#   1 fetch   the pinned upstream source (source.json), SHA-256 checked
+#   2 host    a native CLISP, used to compile the Lisp sources to .fas
+#             (.fas byte code is the same on every platform)
+#   3 cross   lisp.run for m68k-amigaos with this port's patches
+#   4 package lisp.run, the .fas files and lab/MakeImage for the lab, where
+#             lispinit.mem is saved (a memory image must be made on the target)
+#
+# Copyright (c) 2026 AmigaChrome Team. GPL-2.0-or-later, as CLISP.
+set -eu
+HERE=$(cd "$(dirname "$0")" && pwd)
+STOVE=${STOVE:?STOVE is not set}
+OUT=${OUT:-$HERE/build/out}
+CACHE=${CLISP_CACHE:-$HOME/.cache/amigaclisp}
+JOBS=${JOBS:-4}
+BUDGET=${BUDGET:-780}          # seconds of work per run, inside Cradle's 900 s
+START=$(date +%s)
+NICE="nice -n 19"
+mkdir -p "$CACHE" "$OUT"
+log() { echo "[$(( $(date +%s) - START )) s] $*"; }
+left() { echo $(( BUDGET - ($(date +%s) - START) )); }
+
+COMMIT=$(sed -n 's/.*"commit": *"\([0-9a-f]*\)".*/\1/p' "$HERE/source.json")
+URL=$(sed -n 's/.*"archive": *"\([^"]*\)".*/\1/p' "$HERE/source.json")
+WANT=$(sed -n 's/.*"archive_sha256": *"\([0-9a-f]*\)".*/\1/p' "$HERE/source.json")
+SRC=$CACHE/clisp-$COMMIT
+TGZ=$CACHE/clisp-$COMMIT.tar.gz
+CC_AMIGA="$STOVE/prefix/bin/m68k-amigaos-gcc"
+SPECS="$HERE/toolchain/m68k-soft-m68040.specs"
+
+# 1 fetch
+if [ ! -f "$SRC/.unpacked" ]; then
+  [ -f "$TGZ" ] || { log "fetch $URL"; curl -fsSL -o "$TGZ.part" "$URL"; mv "$TGZ.part" "$TGZ"; }
+  GOT=$(sha256sum "$TGZ" | cut -d' ' -f1)
+  log "source sha256 $GOT"
+  if [ -n "$WANT" ] && [ "$GOT" != "$WANT" ]; then echo "SHA-256 mismatch: want $WANT"; exit 1; fi
+  rm -rf "$SRC" "$SRC.tmp"; mkdir -p "$SRC.tmp"
+  tar -xzf "$TGZ" -C "$SRC.tmp" --strip-components=1
+  mv "$SRC.tmp" "$SRC"
+  ( cd "$SRC" && for p in "$HERE"/patches/*.patch; do [ -f "$p" ] || continue; log "patch $(basename "$p")"; patch -p1 < "$p"; done )
+  touch "$SRC/.unpacked"
+fi
+
+# 2 host
+HOST=$CACHE/host
+if [ ! -f "$HOST/.done" ]; then
+  if [ ! -f "$HOST/Makefile" ]; then
+    log "host configure"
+    rm -rf "$HOST"; mkdir -p "$CACHE/host-cfg"
+    ( cd "$CACHE/host-cfg" && $NICE "$SRC/configure" --without-ffcall --without-readline \
+        --without-dynamic-modules --ignore-absence-of-libsigsegv --disable-nls "$HOST" ) > "$CACHE/host-configure.log" 2>&1 \
+      || { tail -40 "$CACHE/host-configure.log"; exit 1; }
+  fi
+  log "host make (budget $(left) s)"
+  if ( cd "$HOST" && timeout "$(left)" $NICE make -j"$JOBS" ) > "$CACHE/host-make.log" 2>&1; then
+    touch "$HOST/.done"; log "host CLISP built"
+  else
+    tail -30 "$CACHE/host-make.log"
+    [ "$(left)" -le 5 ] && { log "RESUME: run build-amiga.sh again"; exit 0; }
+    exit 1
+  fi
+fi
+
+# 3 cross
+CROSS=$CACHE/cross
+if [ ! -f "$CROSS/.done" ]; then
+  [ -x "$CC_AMIGA" ] || { echo "no compiler at $CC_AMIGA"; exit 1; }
+  log "$("$CC_AMIGA" --version | head -1)"
+  if [ ! -f "$CROSS/Makefile" ]; then
+    log "cross configure"
+    rm -rf "$CROSS"; mkdir -p "$CACHE/cross-cfg"
+    ( cd "$CACHE/cross-cfg" && CONFIG_SITE="$HERE/toolchain/config.site" \
+        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" \
+        $NICE "$SRC/configure" --host=m68k-amigaos --build="$(sh "$SRC/src/build-aux/config.guess")" \
+        --without-ffcall --without-readline --without-dynamic-modules --ignore-absence-of-libsigsegv \
+        --disable-nls --disable-mmap --without-unicode "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
+      || { tail -60 "$CACHE/cross-configure.log"; exit 1; }
+  fi
+  log "cross make lisp.run (budget $(left) s)"
+  if ( cd "$CROSS" && timeout "$(left)" $NICE make -j"$JOBS" lisp.run ) > "$CACHE/cross-make.log" 2>&1; then
+    touch "$CROSS/.done"; log "lisp.run built"
+  else
+    tail -60 "$CACHE/cross-make.log"
+    [ "$(left)" -le 5 ] && { log "RESUME: run build-amiga.sh again"; exit 0; }
+    exit 1
+  fi
+fi
+
+# 4 package
+PKG=$OUT/AmigaCLISP
+rm -rf "$PKG"; mkdir -p "$PKG/full"
+cp "$CROSS/lisp.run" "$PKG/lisp"
+cp "$HOST"/*.fas "$PKG/full/"
+cp "$HERE/lab/MakeImage" "$PKG/"
+FPU=$("$STOVE/prefix/bin/m68k-amigaos-objdump" -d "$PKG/lisp" | grep -cE '\sf(move|add|sub|mul|div|cmp|sqrt|int|abs|neg|b[a-z]+)\.?' || true)
+log "lisp $(wc -c < "$PKG/lisp") bytes, FPU instructions: $FPU"
+( cd "$PKG" && find . -type f | sort | xargs sha256sum ) > "$OUT/SHA256SUMS"
+log "DONE"
