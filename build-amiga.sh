@@ -97,7 +97,7 @@ if [ ! -f "$CROSS/.done" ]; then
     done
     rm -rf "$CROSS"; mkdir -p "$CROSS"; cp "$HERE/toolchain/intparam.h" "$CROSS/intparam.h"
     ( cd "$XSRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
-        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" LDFLAGS="$WRAPS" LIBS="$CACHE/libamigacompat.a -lm" \
+        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" LDFLAGS="$WRAPS -Wl,-Map=$CACHE/lisp.ldmap" LIBS="$CACHE/libamigacompat.a -lm" \
         $NICE ./configure --host=m68k-amigaos --build="$(sh "$XSRC/src/build-aux/config.guess")" \
         --without-ffcall --without-readline --without-dynamic-modules --ignore-absence-of-libsigsegv \
         --disable-nls --disable-mmap "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
@@ -128,6 +128,10 @@ cp "$HERE/lab/MakeImage" "$PKG/"; cp "$HERE/lab/makeimage.lisp" "$PKG/full/"
 OBJDUMP="$STOVE/prefix/bin/m68k-amigaos-objdump"
 # symbol map for crash addresses ([amiga abort] lines give an address and main's)
 "$STOVE/prefix/bin/m68k-amigaos-nm" -n "$PKG/lisp" > "$OUT/lisp.map" 2>/dev/null || true
+# static functions are not in the executable: give each object's .text start
+# (from the link map) and spvw.o's own symbols, where the GC and startup live
+grep -E '^ \.text +0x[0-9a-f]+ +0x[0-9a-f]+ ' "$CACHE/lisp.ldmap" > "$OUT/text-objects.txt" 2>/dev/null || true
+"$STOVE/prefix/bin/m68k-amigaos-nm" -n "$CROSS/spvw.o" > "$OUT/spvw.nm" 2>/dev/null || true
 "$STOVE/prefix/bin/m68k-amigaos-strip" -o "$PKG/lisp.stripped" "$PKG/lisp" 2>/dev/null && mv "$PKG/lisp.stripped" "$PKG/lisp" || log "strip failed: lisp left unstripped"
 # FPU instructions, by function (68040 disassembly; libnix's start-up FPCR set-up is guarded)
 "$OBJDUMP" -m m68k:68040 -d "$CROSS/lisp.run" | awk -F'\t' '/^[0-9a-f]+ <.*>:$/ {fn=$0} $3 ~ /^f[a-z]/ {n[fn]++; t++} END {print "FPU instructions:", t+0; for (f in n) print "  " n[f], f}' | head -40
