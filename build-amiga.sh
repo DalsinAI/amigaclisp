@@ -100,7 +100,7 @@ if [ ! -f "$CROSS/.done" ]; then
         CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" LDFLAGS="$WRAPS -Wl,-Map=$CACHE/lisp.ldmap" LIBS="$CACHE/libamigacompat.a -lm" \
         $NICE ./configure --host=m68k-amigaos --build="$(sh "$XSRC/src/build-aux/config.guess")" \
         --without-ffcall --without-readline --without-dynamic-modules --ignore-absence-of-libsigsegv \
-        --disable-nls --disable-mmap "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
+        --disable-nls --disable-mmap --enable-portability "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
       || { tail -60 "$CACHE/cross-configure.log"; exit 1; }
   fi
   # the build's own tools (comment5, gctrigger, varbrace, ...) run on the build machine:
