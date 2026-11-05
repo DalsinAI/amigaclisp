@@ -52,8 +52,8 @@ HOST=$CACHE/host
 if [ ! -f "$HOST/.done" ]; then
   if [ ! -f "$HOST/Makefile" ]; then
     log "host configure"
-    rm -rf "$HOST"; mkdir -p "$CACHE/host-cfg"
-    ( cd "$CACHE/host-cfg" && $NICE "$SRC/configure" --without-ffcall --without-readline \
+    rm -rf "$HOST"
+    ( cd "$SRC" && $NICE ./configure --without-ffcall --without-readline \
         --without-dynamic-modules --ignore-absence-of-libsigsegv --disable-nls "$HOST" ) > "$CACHE/host-configure.log" 2>&1 \
       || { tail -40 "$CACHE/host-configure.log"; exit 1; }
   fi
@@ -74,10 +74,10 @@ if [ ! -f "$CROSS/.done" ]; then
   log "$("$CC_AMIGA" --version | head -1)"
   if [ ! -f "$CROSS/Makefile" ]; then
     log "cross configure"
-    rm -rf "$CROSS"; mkdir -p "$CACHE/cross-cfg"
-    ( cd "$CACHE/cross-cfg" && CONFIG_SITE="$HERE/toolchain/config.site" \
+    rm -rf "$CROSS"
+    ( cd "$SRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
         CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" \
-        $NICE "$SRC/configure" --host=m68k-amigaos --build="$(sh "$SRC/src/build-aux/config.guess")" \
+        $NICE ./configure --host=m68k-amigaos --build="$(sh "$SRC/src/build-aux/config.guess")" \
         --without-ffcall --without-readline --without-dynamic-modules --ignore-absence-of-libsigsegv \
         --disable-nls --disable-mmap --without-unicode "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
       || { tail -60 "$CACHE/cross-configure.log"; exit 1; }
