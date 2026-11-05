@@ -14,3 +14,15 @@
  #if ((defined(GENERATIONAL_GC) && defined(WIDE)) || defined(KERNELVOID32_HEAPCODES) || defined(GENERIC64_HEAPCODES)) && (varobject_alignment < 8)
    #undef varobject_alignment
    #define varobject_alignment  8
+@@ -9476,7 +9483,10 @@
+   /* If necessary, add fillers here to ensure sizeof(subr_t)
+      is a multiple of varobject_alignment. */
+ } subr_t
+-#if defined(GENERIC64_HEAPCODES) && (alignment_long < 8) && defined(GNU)
++#if defined(UNIX_AMIGAOS) && defined(WIDE_SOFT) && defined(GNU)
++/* AmigaOS: Subrs are varobjects, 8-aligned like the rest (see above). */
++  __attribute__ ((aligned (8)))
++#elif defined(GENERIC64_HEAPCODES) && (alignment_long < 8) && defined(GNU)
+ /* Force all Subrs to be allocated with a 8-byte alignment. GC needs this. */
+   __attribute__ ((aligned (8)))
+ #elif defined(HEAPCODES) && (alignment_long < 4) && defined(GNU)
