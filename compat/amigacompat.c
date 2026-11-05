@@ -45,15 +45,3 @@ void __wrap_abort (void)
   fflush(stderr);
   __real_abort();
 }
-
-/* With CLISP_TRACE set, exit() says where from and with what code. */
-void __real_exit (int code) __attribute__((noreturn));
-void __wrap_exit (int code)
-{
-  if (getenv("CLISP_TRACE") != NULL) {
-    fprintf(stderr, "[amiga exit] exit(%d) called from %p, main at %p\n",
-            code, __builtin_return_address(0), (void *)main);
-    fflush(stderr);
-  }
-  __real_exit(code);
-}

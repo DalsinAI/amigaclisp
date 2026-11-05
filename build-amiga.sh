@@ -101,6 +101,7 @@ if [ ! -f "$CROSS/.done" ]; then
       $CC_AMIGA -noixemul -m68040 -specs=$SPECS -O2 -Wall -c "$HERE/compat/$c.c" -o "$CACHE/$c.o"
       "$STOVE/prefix/bin/m68k-amigaos-ar" rcs "$CACHE/libamigacompat.a" "$CACHE/$c.o"
     done
+    $CC_AMIGA -noixemul -m68040 -specs=$SPECS -O2 -Wall -c "$HERE/compat/exittrace.c" -o "$CACHE/exittrace.o"
     rm -rf "$CROSS"; mkdir -p "$CROSS"; cp "$HERE/toolchain/intparam.h" "$CROSS/intparam.h"
     ( cd "$XSRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
         CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" CPPFLAGS="$OBJMODEL" LDFLAGS="$WRAPS -Wl,-Map=$CACHE/lisp.ldmap" LIBS="$CACHE/libamigacompat.a -lm" \
@@ -118,7 +119,7 @@ if [ ! -f "$CROSS/.done" ]; then
   # makemake puts its own -O2 in Z_CFLAGS, after CFLAGS: OPT takes its place
   sed -i "/^Z_CFLAGS *=/s/ -O2\b/ $OPT/" "$CROSS/Makefile"
   # exit() is wrapped for lisp only: configure's test programs call it too
-  grep -q 'wrap=exit' "$CROSS/Makefile" || sed -i '/^LDFLAGS *=/s/$/ -Wl,--wrap=exit/' "$CROSS/Makefile"
+  grep -q 'wrap=exit' "$CROSS/Makefile" || sed -i "/^LDFLAGS *=/s|\$| -Wl,--wrap=exit $CACHE/exittrace.o|" "$CROSS/Makefile"
   grep -E '^(Z_CFLAGS|CFLAGS|CPPFLAGS|LDFLAGS) *=' "$CROSS/Makefile" | sed 's/^/[make] /'
   log "cross make lisp.run (budget $(left) s)"
   if ( cd "$CROSS" && timeout "$(left)" $NICE make -k -j"$JOBS" lisp.run ) > "$CACHE/cross-make.log" 2>&1; then
