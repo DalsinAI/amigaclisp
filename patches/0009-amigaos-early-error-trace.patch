@@ -1,7 +1,7 @@
 diff -ru a/src/error.d b/src/error.d
---- a/src/error.d	2026-11-05 17:04:33.812148326 +0000
-+++ b/src/error.d	2026-11-05 17:04:33.843140494 +0000
-@@ -376,6 +376,20 @@
+--- a/src/error.d	2026-11-05 18:55:10.890408523 +0000
++++ b/src/error.d	2026-11-05 18:55:10.936552164 +0000
+@@ -376,6 +376,21 @@
  local void prepare_error (condition_t errortype, const char* errorstring,
                            bool start_driver_p)
  { /* the common part of error(), check_value() &c */
@@ -17,14 +17,15 @@ diff -ru a/src/error.d b/src/error.d
 +      fprintf(stderr,"[amiga trace]   arg %lu: ",(unsigned long)i);
 +      nobject_out(stderr,STACK_(i)); fprintf(stderr,"\n");
 +    }
++    { extern void amiga_back_trace (void); amiga_back_trace(); }
 +  }
 + #endif
    begin_error(); /* start error message */
    if (!nullp(STACK_3)) { /* *ERROR-HANDLER* = NIL, SYS::*USE-CLCS* /= NIL ? */
      /* choose error-type-symbol for errortype: */
 diff -ru a/src/errunix.d b/src/errunix.d
---- a/src/errunix.d	2026-11-05 17:04:33.816072714 +0000
-+++ b/src/errunix.d	2026-11-05 17:04:33.818356346 +0000
+--- a/src/errunix.d	2026-11-05 18:55:10.890768285 +0000
++++ b/src/errunix.d	2026-11-05 18:55:10.897305372 +0000
 @@ -53,6 +53,10 @@
    errcode = errno;
    errno = 0; /* reset for the next error */
@@ -36,3 +37,20 @@ diff -ru a/src/errunix.d b/src/errunix.d
    clr_break_sem_4(); /* no UNIX operation may be active */
    pushSTACK(L_to_I(errcode));
    begin_error(); /* start error message */
+diff -ru a/src/spvw_debug.d b/src/spvw_debug.d
+--- a/src/spvw_debug.d	2026-11-05 18:55:10.890787765 +0000
++++ b/src/spvw_debug.d	2026-11-05 18:55:10.935588912 +0000
+@@ -403,6 +403,13 @@
+   return bt_index;
+ }
+ 
++#ifdef UNIX_AMIGAOS
++/* AmigaCLISP: the Lisp call stack on stderr (error trace under CLISP_TRACE) */
++global void amiga_back_trace (void) {
++  back_trace_out(stderr,NULL);
++}
++#endif
++
+ global void back_trace_check (const struct backtrace_t *bt,
+                               const char* label, const char* file, int line) {
+   if (bt && back_trace_depth(bt)<0) {
