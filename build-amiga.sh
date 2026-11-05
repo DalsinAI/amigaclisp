@@ -88,7 +88,7 @@ OPT=${CLISP_OPT:--O1}   # below -O2 while the GC crash in compiler.fas is chased
 OBJMODEL="-DNO_ADDRESS_SPACE_ASSUMPTIONS -DNO_ASM -DNO_ARI_ASM -DNO_SP_ASM -DNO_GENERATIONAL_GC"
 # file calls that take a path go through compat/unixpath.c
 WRAPS="-Wl,--wrap=open,--wrap=stat,--wrap=lstat,--wrap=access,--wrap=opendir,--wrap=chdir,--wrap=getcwd"
-WRAPS="$WRAPS,--wrap=mkdir,--wrap=rmdir,--wrap=unlink,--wrap=rename,--wrap=realpath,--wrap=readlink,--wrap=abort,--wrap=exit"
+WRAPS="$WRAPS,--wrap=mkdir,--wrap=rmdir,--wrap=unlink,--wrap=rename,--wrap=realpath,--wrap=readlink,--wrap=abort"
 if [ ! -f "$CROSS/.done" ]; then
   [ -x "$CC_AMIGA" ] || { echo "no compiler at $CC_AMIGA"; exit 1; }
   log "$("$CC_AMIGA" --version | head -1)"
@@ -117,6 +117,8 @@ if [ ! -f "$CROSS/.done" ]; then
   touch "$CROSS/.tools"
   # makemake puts its own -O2 in Z_CFLAGS, after CFLAGS: OPT takes its place
   sed -i "/^Z_CFLAGS *=/s/ -O2\b/ $OPT/" "$CROSS/Makefile"
+  # exit() is wrapped for lisp only: configure's test programs call it too
+  grep -q 'wrap=exit' "$CROSS/Makefile" || sed -i '/^LDFLAGS *=/s/$/ -Wl,--wrap=exit/' "$CROSS/Makefile"
   grep -E '^(Z_CFLAGS|CFLAGS|CPPFLAGS|LDFLAGS) *=' "$CROSS/Makefile" | sed 's/^/[make] /'
   log "cross make lisp.run (budget $(left) s)"
   if ( cd "$CROSS" && timeout "$(left)" $NICE make -k -j"$JOBS" lisp.run ) > "$CACHE/cross-make.log" 2>&1; then
