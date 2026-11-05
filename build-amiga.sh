@@ -93,6 +93,12 @@ if [ ! -f "$CROSS/.done" ]; then
         --disable-nls --disable-mmap --without-unicode "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
       || { tail -60 "$CACHE/cross-configure.log"; exit 1; }
   fi
+  # the build's own tools (comment5, gctrigger, varbrace, ...) run on the build machine:
+  # take the host build's, so make doesn't make them with the cross compiler
+  for u in comment5 gctrigger varbrace ccpaux txt2c ccmp2c; do
+    [ -x "$HOST/$u" ] && [ ! -e "$CROSS/.tools" ] && cp -p "$HOST/$u" "$CROSS/$u" && touch "$CROSS/$u"
+  done
+  touch "$CROSS/.tools"
   log "cross make lisp.run (budget $(left) s)"
   if ( cd "$CROSS" && timeout "$(left)" $NICE make -k -j"$JOBS" lisp.run ) > "$CACHE/cross-make.log" 2>&1; then
     touch "$CROSS/.done"; log "lisp.run built"
