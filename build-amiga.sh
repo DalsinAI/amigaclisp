@@ -167,4 +167,10 @@ grep -E '^ \.text +0x[0-9a-f]+ +0x[0-9a-f]+ ' "$CACHE/lisp.ldmap" > "$OUT/text-o
 "$OBJDUMP" -m m68k:68040 -d "$CROSS/lisp.run" | awk -F'\t' '/^[0-9a-f]+ <.*>:$/ {fn=$0} $3 ~ /^f[a-z]/ {n[fn]++; t++} END {print "FPU instructions:", t+0; for (f in n) print "  " n[f], f}' | head -40
 log "lisp $(wc -c < "$PKG/lisp") bytes"
 ( cd "$PKG" && find . -type f | sort | xargs sha256sum ) > "$OUT/SHA256SUMS"
+# the package in parts under 256 KiB, so it can be taken from a lab whole
+# (lab_get returns one file up to 256 KiB): cat parts/* | tar -xz
+rm -rf "$OUT/parts"; mkdir -p "$OUT/parts"
+tar -C "$OUT" -czf - AmigaCLISP | split -b 200k -d -a 2 - "$OUT/parts/AmigaCLISP.tgz."
+( cd "$OUT/parts" && cat AmigaCLISP.tgz.* | sha256sum ) > "$OUT/parts.sha256"
+log "parts: $(ls "$OUT/parts" | wc -l)"
 log "DONE"
