@@ -8,6 +8,10 @@
 ;;; FAS_LIST      a file with one source path per line
 ;;; FAS_OUT       the directory for the .fas files (ends in /)
 (setq *load-verbose* nil *compile-verbose* nil *compile-print* nil)
+;; the compiler is replaced inside the running image: as the build does, with
+;; the packages unlocked and without redefinition warnings
+(setf (ext:package-lock (list-all-packages)) nil)
+(setq custom:*suppress-check-redefinition* t)
 (let ((tmp (concatenate 'string (ext:getenv "FAS_OUT") "compiler-host.fas")))
   ;; this compiler, made for and loaded into the host, writes big-endian .fas
   (compile-file (ext:getenv "FAS_COMPILER") :output-file tmp)
