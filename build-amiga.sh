@@ -103,7 +103,7 @@ if [ ! -f "$CROSS/.done" ]; then
     done
     rm -rf "$CROSS"; mkdir -p "$CROSS"; cp "$HERE/toolchain/intparam.h" "$CROSS/intparam.h"
     ( cd "$XSRC" && CONFIG_SITE="$HERE/toolchain/config.site" \
-        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" CFLAGS="-g $OPT" CPPFLAGS="$OBJMODEL" LDFLAGS="$WRAPS -Wl,-Map=$CACHE/lisp.ldmap" LIBS="$CACHE/libamigacompat.a -lm" \
+        CC="$CC_AMIGA -noixemul -m68040 -specs=$SPECS" CPPFLAGS="$OBJMODEL" LDFLAGS="$WRAPS -Wl,-Map=$CACHE/lisp.ldmap" LIBS="$CACHE/libamigacompat.a -lm" \
         $NICE ./configure --host=m68k-amigaos --build="$(sh "$XSRC/src/build-aux/config.guess")" \
         --without-ffcall --without-readline --without-dynamic-modules --ignore-absence-of-libsigsegv \
         --disable-nls --disable-mmap "$CROSS" ) > "$CACHE/cross-configure.log" 2>&1 \
@@ -115,7 +115,9 @@ if [ ! -f "$CROSS/.done" ]; then
     [ -x "$HOST/$u" ] && [ ! -e "$CROSS/.tools" ] && cp -p "$HOST/$u" "$CROSS/$u" && touch "$CROSS/$u"
   done
   touch "$CROSS/.tools"
-  grep -E '^(CFLAGS|CPPFLAGS|LDFLAGS) *=' "$CROSS/Makefile" | sed 's/^/[make] /'
+  # makemake puts its own -O2 in Z_CFLAGS, after CFLAGS: OPT takes its place
+  sed -i "/^Z_CFLAGS *=/s/ -O2\b/ $OPT/" "$CROSS/Makefile"
+  grep -E '^(Z_CFLAGS|CFLAGS|CPPFLAGS|LDFLAGS) *=' "$CROSS/Makefile" | sed 's/^/[make] /'
   log "cross make lisp.run (budget $(left) s)"
   if ( cd "$CROSS" && timeout "$(left)" $NICE make -k -j"$JOBS" lisp.run ) > "$CACHE/cross-make.log" 2>&1; then
     touch "$CROSS/.done"; log "lisp.run built"
