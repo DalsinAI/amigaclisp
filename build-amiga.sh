@@ -48,7 +48,7 @@ if [ ! -f "$SRC/.unpacked" ]; then
   mv "$SRC.tmp" "$SRC"
   touch "$SRC/.unpacked"
 fi
-PSET=$(cat "$HERE"/patches/*.patch "$HERE"/compat/*.c "$HERE/toolchain/config.site" "$HERE/toolchain/fas-be.lisp" "$HERE/build-amiga.sh" 2>/dev/null | sha256sum | cut -c1-16)
+PSET=$(cat "$HERE"/patches/*.patch "$HERE"/host-patches/*.patch "$HERE"/compat/*.c "$HERE/toolchain/config.site" "$HERE/toolchain/fas-be.lisp" "$HERE/build-amiga.sh" 2>/dev/null | sha256sum | cut -c1-16)
 XSRC=$CACHE/xsrc
 CROSS=$CACHE/cross
 if [ "$(cat "$XSRC/.pset" 2>/dev/null)" != "$PSET" ]; then
@@ -59,13 +59,23 @@ if [ "$(cat "$XSRC/.pset" 2>/dev/null)" != "$PSET" ]; then
   echo "$PSET" > "$XSRC/.pset"
 fi
 
-# 2 host
-HOST=$CACHE/host
+# 2 host: from the pristine source plus the host patches (host-patches/: the
+# compiler's byte-order switch, used by stage 2b), in its own tree and folder
+HPSET=$(cat "$HERE"/host-patches/*.patch 2>/dev/null | sha256sum | cut -c1-16)
+HSRC=$CACHE/hsrc-$HPSET
+HOST=$CACHE/host-$HPSET
+if [ ! -f "$HSRC/.ready" ]; then
+  log "host source $HPSET"
+  rm -rf "$HSRC"; mkdir -p "$HSRC"
+  tar -xzf "$TGZ" -C "$HSRC" --strip-components=1
+  ( cd "$HSRC" && for p in "$HERE"/host-patches/*.patch; do [ -f "$p" ] || continue; log "host patch $(basename "$p")"; patch -p1 < "$p"; done )
+  touch "$HSRC/.ready"
+fi
 if [ ! -f "$HOST/.done" ]; then
   if [ ! -f "$HOST/Makefile" ]; then
     log "host configure"
     rm -rf "$HOST"
-    ( cd "$SRC" && $NICE ./configure --without-ffcall --without-readline \
+    ( cd "$HSRC" && $NICE ./configure --without-ffcall --without-readline \
         --without-dynamic-modules --ignore-absence-of-libsigsegv --disable-nls "$HOST" ) > "$CACHE/host-configure.log" 2>&1 \
       || { tail -40 "$CACHE/host-configure.log"; exit 1; }
   fi
@@ -81,19 +91,17 @@ fi
 
 # 2b big-endian .fas: a compiled function's code header holds 16-bit counts in
 # the byte order of the Lisp that compiled it, and the host is little-endian.
-# Recompile the Lisp system in the host CLISP with patch 0012's compiler set to
-# write big-endian headers (toolchain/fas-be.lisp).
+# The host CLISP's compiler has the byte-order switch (host-patches/0001):
+# compile the Lisp system again with it set to big-endian (toolchain/fas-be.lisp).
 FASBE=$CACHE/fas-be
 if [ "$(cat "$FASBE/.pset" 2>/dev/null)" != "$PSET" ]; then
   log "big-endian .fas (budget $(left) s)"
   rm -rf "$FASBE"; mkdir -p "$FASBE"
   for f in "$HOST"/*.fas; do
     n=$(basename "$f" .fas)
-    if [ "$n" = compiler ]; then echo "$XSRC/src/compiler.lisp"
-    elif [ -f "$HOST/$n.lisp" ]; then echo "$HOST/$n.lisp"
-    else echo "$XSRC/src/$n.lisp"; fi
+    if [ -f "$HOST/$n.lisp" ]; then echo "$HOST/$n.lisp"; else echo "$HSRC/src/$n.lisp"; fi
   done > "$CACHE/fas-be.list"
-  if ( cd "$HOST" && FAS_COMPILER="$XSRC/src/compiler.lisp" FAS_LIST="$CACHE/fas-be.list" FAS_OUT="$FASBE/" \
+  if ( cd "$HOST" && FAS_LIST="$CACHE/fas-be.list" FAS_OUT="$FASBE/" \
        timeout "$(left)" $NICE ./lisp.run -B . -M lispinit.mem -norc -q "$HERE/toolchain/fas-be.lisp" ) > "$CACHE/fas-be.log" 2>&1; then
     grep '^fas-be:' "$CACHE/fas-be.log" | sed 's/^/[fas] /'
     echo "$PSET" > "$FASBE/.pset"

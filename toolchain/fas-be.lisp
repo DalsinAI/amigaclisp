@@ -4,19 +4,10 @@
 ;;; byte order of the Lisp that compiled it; the 68k reads them big-endian.
 ;;; Copyright (c) 2026 AmigaChrome Team. GPL-2.0-or-later, as CLISP.
 ;;;
-;;; FAS_COMPILER  the patched compiler.lisp (patch 0012, *FAS-BIG-ENDIAN*)
+;;; The host CLISP is built with host-patches/0001 (SYS::*FAS-BIG-ENDIAN*).
 ;;; FAS_LIST      a file with one source path per line
 ;;; FAS_OUT       the directory for the .fas files (ends in /)
 (setq *load-verbose* nil *compile-verbose* nil *compile-print* nil)
-;; the compiler is replaced inside the running image: as the build does, with
-;; the packages unlocked and without redefinition warnings
-(setf (ext:package-lock (list-all-packages)) nil)
-(setq custom:*suppress-check-redefinition* t)
-(let ((tmp (concatenate 'string (ext:getenv "FAS_OUT") "compiler-host.fas")))
-  ;; this compiler, made for and loaded into the host, writes big-endian .fas
-  (compile-file (ext:getenv "FAS_COMPILER") :output-file tmp)
-  (load tmp)
-  (delete-file tmp))
 (setq system::*fas-big-endian* t)
 (let ((failed 0))
   (with-open-file (list (ext:getenv "FAS_LIST"))
