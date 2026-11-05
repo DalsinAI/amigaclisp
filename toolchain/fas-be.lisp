@@ -2,7 +2,7 @@
 ;;; (little-endian) build machine, run by build-amiga.sh in the host CLISP.
 ;;; The code header of every compiled function holds 16-bit counts in the
 ;;; byte order of the Lisp that compiled it; the 68k reads them big-endian.
-;;; Copyright (c) 2026 AmigaChrome Team. GPL-2.0-or-later, as CLISP.
+;;; Copyright (c) 2026 AmiCradle Team. GPL-2.0-or-later, as CLISP.
 ;;;
 ;;; The host CLISP is built with host-patches/0001 (SYS::*FAS-BIG-ENDIAN*).
 ;;; FAS_LIST      a file with one source path per line
