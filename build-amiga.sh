@@ -194,10 +194,9 @@ cp "$HERE/README.md" "$P/ReadMe" 2>/dev/null || :
 cp "$SRC/COPYING" "$P/COPYING"
 ( cd "$WORK/pkg" && find . -type f | sort | xargs sha256sum ) > "$OUT/SHA256SUMS"
 du -sh "$P" | sed 's/^/package: /'
-# the package as one tar.gz, and in parts under 256 KiB (lab_get takes one
-# file up to 256 KiB): cat parts/* | tar -xz
+# the package as one tar.gz, and as an LhA archive for the Amiga (our own
+# packer; LHA_METHOD=lh0 stores, quick for labs; auto packs, for releases)
 tar -C "$WORK/pkg" -czf "$OUT/wxMaxima-$WXMAXIMA_VERSION.tgz" wxMaxima
-rm -rf "$OUT/parts"; mkdir -p "$OUT/parts"
-split -b 200k -d -a 3 "$OUT/wxMaxima-$WXMAXIMA_VERSION.tgz" "$OUT/parts/wxMaxima.tgz."
 ls -l "$OUT/wxMaxima-$WXMAXIMA_VERSION.tgz"
+python3 -I "$HERE/tools/mklha.py" "$P" "$OUT/wxMaxima-$WXMAXIMA_VERSION.lha" "${LHA_METHOD:-lh0}"
 log "DONE"
