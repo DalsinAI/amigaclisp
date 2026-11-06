@@ -1,0 +1,15 @@
+# AmigaOS 3.x (68040, libnix) for CMake: a Unix-like system with static
+# libraries only. Copyright (c) 2026 AmiCradle Team
+set(UNIX 1)
+set(AMIGA 1)
+set(CMAKE_STATIC_LIBRARY_PREFIX "lib")
+set(CMAKE_STATIC_LIBRARY_SUFFIX ".a")
+set(CMAKE_SHARED_LIBRARY_PREFIX "lib")
+set(CMAKE_SHARED_LIBRARY_SUFFIX ".a")
+set(CMAKE_SHARED_MODULE_PREFIX "lib")
+set(CMAKE_SHARED_MODULE_SUFFIX ".a")
+set(CMAKE_EXECUTABLE_SUFFIX "")
+set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS FALSE)
+set(CMAKE_DL_LIBS "")

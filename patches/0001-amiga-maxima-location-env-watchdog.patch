@@ -1,0 +1,55 @@
+diff -ruN wxm-a/src/Dirstructure.cpp wxm-b/src/Dirstructure.cpp
+--- a/src/Dirstructure.cpp	2026-11-06 00:05:27.081230263 +0000
++++ b/src/Dirstructure.cpp	2026-11-06 00:30:19.922565870 +0000
+@@ -157,6 +157,15 @@
+   wxString maximaLocation;
+ #endif
+ 
++#if defined __AMIGA__
++  // AmigaOS: Maxima comes in the program's drawer, Maxima/maxima (the port's
++  // launcher, which starts CLISP with Maxima's memory image)
++  {
++    wxFileName amigaMaxima(exe.GetPathWithSep() + wxS("Maxima/maxima"));
++    if (wxFileExists(amigaMaxima.GetFullPath()))
++      return amigaMaxima.GetFullPath();
++  }
++#endif
+   // -------------------------- MS Windows only ------------------------
+ #if defined __WXMSW__
+   wxString exeDir = exe.GetPathWithSep();
+diff -ruN wxm-a/src/MaximaProcessManager.cpp wxm-b/src/MaximaProcessManager.cpp
+--- a/src/MaximaProcessManager.cpp	2026-11-06 00:05:27.089230263 +0000
++++ b/src/MaximaProcessManager.cpp	2026-11-06 00:30:19.923416141 +0000
+@@ -364,6 +364,16 @@
+       m_wxMaxima.m_maximaAuthString = wxBase64Encode(membuf);
+       environment["MAXIMA_AUTH_CODE"] = m_wxMaxima.m_maximaAuthString;
+ 
++#ifdef __AMIGA__
++      // AmigaOS: wxExecute starts Maxima in a CLI of its own, which takes
++      // this process's variables with it (it has no environment block of its
++      // own), so what Maxima must see is set here
++      for (const auto &var : environment) {
++        wxString now;
++        if (!wxGetEnv(var.first, &now) || (now != var.second))
++          wxSetEnv(var.first, var.second);
++      }
++#endif
+       env->env = std::move(environment);
+       Configuration::g_stats.maximaProcessesSpawned++;
+       m_wxMaxima.m_pid = wxExecute(
+@@ -414,7 +424,14 @@
+       // actually back at the event loop (hence genuinely idle and able to
+       // process an incoming connection) measures the 5 seconds fairly.
+       wxMaxima *wxm = &m_wxMaxima;
+-      wxm->CallAfter([wxm] { wxm->m_maximaConnectWatchdogTimer.StartOnce(5000); });
++      wxm->CallAfter([wxm] { wxm->m_maximaConnectWatchdogTimer.StartOnce(
++#ifdef __AMIGA__
++        // a 68040 takes longer to start CLISP with Maxima's image
++        60000
++#else
++        5000
++#endif
++        ); });
+     } else {
+       m_wxMaxima.m_statusBar->NetworkStatus(StatusBar::offline);
+       wxLogMessage(_("Cannot find a maxima binary and no binary chosen in the "

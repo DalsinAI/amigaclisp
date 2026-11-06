@@ -1,0 +1,20 @@
+# What this port builds on: fetched at build time, never shipped in git.
+# wxMaxima 26.10.0 (GPL v2 or later), its release tag's commit
+WXMAXIMA_VERSION=26.10.0
+WXMAXIMA_GIT=https://github.com/wxMaxima-developers/wxmaxima
+WXMAXIMA_COMMIT=e613aba2bdc7a123f4b57ca7a5468ce57920030a
+# Maxima 5.50.0 (GPL v2), source release
+MAXIMA_VERSION=5.50.0
+MAXIMA_URL=https://downloads.sourceforge.net/project/maxima/Maxima-source/5.50.0-source/maxima-5.50.0.tar.gz
+MAXIMA_SHA256=0bc4b5e11fe153ef20b24a3a816b668ece5378cc738fa24ca426b62fd6d8fc37
+# AmigaCLISP (the Common Lisp Maxima runs on): its build makes the host CLISP
+# that compiles Maxima and the Amiga lisp that runs it (0.1 rc1)
+CLISP_REPO=https://github.com/DalsinAI/amigaclisp
+CLISP_COMMIT=66506f22410287ccb853c13a5c7f3881451dd824
+# GFOpenWX Toolkit (wxWidgets on GFOpenLayout): #4's branch with the log
+# window, notifications, splines and SVG wxMaxima needs
+WXT_REPO=https://github.com/DalsinAI/gfopenwxtoolkit
+WXT_COMMIT=6d0da305658c03044e30a4b4bb6066eb802acf86
+# fpuauto (amicradle-guest common/fpuauto): the FPU when there is one
+FPUAUTO_REPO=https://github.com/DalsinAI/amicradle-guest
+FPUAUTO_COMMIT=4a784c84b878fe0e9abade7006e67e1ded9b165c
