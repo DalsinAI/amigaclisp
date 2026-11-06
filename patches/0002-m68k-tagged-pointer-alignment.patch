@@ -1,0 +1,37 @@
+diff -ruN wxm-a/src/cells/CellPtr.h wxm-b/src/cells/CellPtr.h
+--- a/src/cells/CellPtr.h	2026-11-06 00:05:27.102676134 +0000
++++ b/src/cells/CellPtr.h	2026-11-06 01:47:06.820165894 +0000
+@@ -89,13 +89,22 @@
+ 
+ class CellPtrBase;
+ 
++/*! The classes whose pointers carry tags in their two low bits must be at
++  least 4-aligned. m68k's ABI aligns ints and pointers to 2 only, so there
++  they are given that alignment. */
++#if defined(__AMIGA__) || defined(__m68k__)
++#define WXM_TAGGED_ALIGN alignas(4)
++#else
++#define WXM_TAGGED_ALIGN
++#endif
++
+ /*! Objects deriving from this class can be observed by the CellPtr.
+  *
+  * This class is not copyable.
+  */
+-class Observed
++class WXM_TAGGED_ALIGN Observed
+ {
+-  class ControlBlock final
++  class WXM_TAGGED_ALIGN ControlBlock final
+   {
+     //! Pointer to the object this control block tracks.
+     Observed *m_object = {};
+@@ -282,7 +291,7 @@
+  *    and the observed's m_ptr *also* points to the control block.
+  */
+ // cppcheck-suppress ctuOneDefinitionRuleViolation
+-class CellPtrBase
++class WXM_TAGGED_ALIGN CellPtrBase
+ {
+   using CellPtrImplPointer = Observed::CellPtrImplPointer;
+   using ControlBlock = Observed::ControlBlock;
