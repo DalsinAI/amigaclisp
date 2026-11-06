@@ -96,26 +96,9 @@ fi
 # COMPILE) is big-endian there; upstream fixed that order when compiler.lisp
 # was itself compiled, on the little-endian host.
 
-# fpuauto (amicradle-guest common/fpuauto): libfpuauto.a from its fpuauto.S,
-# at a pinned commit, as its own build-amiga.sh makes it. Linked into lisp with
-# its specs file: every soft-float routine is wrapped and takes the FPU when
-# there is one (AttnFlags AFF_FPU40), the original routine otherwise.
-FPUAUTO_REPO=https://github.com/DalsinAI/amicradle-guest
-FPUAUTO_COMMIT=4a784c84b878fe0e9abade7006e67e1ded9b165c
-FAD=$CACHE/fpuauto-src; FA=$FAD/common/fpuauto; FAL=$CACHE/fpuauto
-if [ "$(cat "$FAL/.commit" 2>/dev/null)" != "$FPUAUTO_COMMIT" ]; then
-  log "fpuauto $FPUAUTO_COMMIT"
-  rm -rf "$FAD" "$FAL"; mkdir -p "$FAD" "$FAL/obj"
-  git -C "$FAD" init -q
-  git -C "$FAD" fetch -q --depth 1 "$FPUAUTO_REPO" "$FPUAUTO_COMMIT"
-  git -C "$FAD" checkout -q FETCH_HEAD -- common/fpuauto
-  "$CC_AMIGA" -m68040 -DFPUAUTO_COMMON -c "$FA/fpuauto.S" -o "$FAL/obj/fa_common.o"
-  for n in $(sed 's/^--wrap=//' "$FA/fpuauto.wraps"); do
-    "$CC_AMIGA" -m68040 -DR_$n -c "$FA/fpuauto.S" -o "$FAL/obj/fa_$n.o"
-  done
-  "$STOVE/prefix/bin/m68k-amigaos-ar" rcs "$FAL/libfpuauto.a" "$FAL"/obj/fa_*.o
-  echo "$FPUAUTO_COMMIT" > "$FAL/.commit"
-fi
+# fpuauto (amicradle-guest common/fpuauto) is in the stoves' own gcc specs
+# (6 Nov 2026): every 68040 soft-float libnix link, lisp's too, takes the FPU
+# when the machine has one and the soft routine otherwise. Nothing to add here.
 
 # 3 cross
 # Object model: WIDE_SOFT (64-bit objects on a 32-bit CPU), the one model that
@@ -158,8 +141,6 @@ if [ ! -f "$CROSS/.done" ]; then
   sed -i "/^Z_CFLAGS *=/s/ -O2\b/ $OPT/" "$CROSS/Makefile"
   # exit() is wrapped for lisp only: configure's test programs call it too
   grep -q 'wrap=exit' "$CROSS/Makefile" || sed -i "/^LDFLAGS *=/s|\$| -Wl,--wrap=exit $CACHE/exittrace.o|" "$CROSS/Makefile"
-  # fpuauto: the FPU when the machine has one, soft float otherwise (one binary)
-  grep -q 'fpuauto.specs' "$CROSS/Makefile" || sed -i "/^LDFLAGS *=/s|\$| -specs=$FA/fpuauto.specs -L$FAL|" "$CROSS/Makefile"
   grep -E '^(Z_CFLAGS|CFLAGS|CPPFLAGS|LDFLAGS) *=' "$CROSS/Makefile" | sed 's/^/[make] /'
   log "cross make lisp.run (budget $(left) s)"
   if ( cd "$CROSS" && timeout "$(left)" $NICE make -k -j"$JOBS" lisp.run ) > "$CACHE/cross-make.log" 2>&1; then
@@ -188,6 +169,7 @@ grep -E '^ \.text +0x[0-9a-f]+ +0x[0-9a-f]+ ' "$CACHE/lisp.ldmap" > "$OUT/text-o
 "$STOVE/prefix/bin/m68k-amigaos-strip" -o "$PKG/lisp.stripped" "$PKG/lisp" 2>/dev/null && mv "$PKG/lisp.stripped" "$PKG/lisp" || log "strip failed: lisp left unstripped"
 # FPU instructions, by function (68040 disassembly; libnix's start-up FPCR set-up is guarded)
 echo "fpuauto: $("$OBJDUMP" -d "$CROSS/lisp.run" | grep -c 'jsr.*<___wrap_' || true) wrapped calls in lisp"
+[ "$("$OBJDUMP" -d "$CROSS/lisp.run" | grep -c 'jsr.*<___wrap_' || true)" -gt 0 ] || { echo "fpuauto: no wrapped calls (the stove lacks fpuauto?)"; exit 1; }
 "$OBJDUMP" -m m68k:68040 -d "$CROSS/lisp.run" | awk -F'\t' '/^[0-9a-f]+ <.*>:$/ {fn=$0} $3 ~ /^f[a-z]/ {n[fn]++; t++} END {print "FPU instructions:", t+0; for (f in n) print "  " n[f], f}' | head -40
 log "lisp $(wc -c < "$PKG/lisp") bytes"
 ( cd "$PKG" && find . -type f | sort | xargs sha256sum ) > "$OUT/SHA256SUMS"
