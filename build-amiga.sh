@@ -77,7 +77,7 @@ if [ "$(cat "$CLO/.commit" 2>/dev/null)" != "$CLISP_COMMIT" ]; then
 fi
 HOSTCLISP=$(ls -d "$CLC"/host-*/clisp 2>/dev/null | head -1)
 [ -x "$HOSTCLISP" ] || { echo "no host CLISP in $CLC"; exit 1; }
-[ -x "$CLO/AmigaCLISP/lisp" ] || { echo "no Amiga lisp in $CLO"; exit 1; }
+[ -f "$CLO/AmigaCLISP/lisp" ] || { ls -la "$CLO" "$CLO/AmigaCLISP" 2>&1 | head; echo "no Amiga lisp in $CLO"; exit 1; }
 
 # ---- 3 Maxima, compiled by the host CLISP
 TB="$WORK/dl/maxima-$MAXIMA_VERSION.tar.gz"
