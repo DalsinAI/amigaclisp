@@ -178,7 +178,7 @@ fi
 cp "$B/src/wxmaxima" "$OUT/wxMaxima.debug"
 "$TC/bin/m68k-amigaos-strip" -o "$OUT/wxMaxima" "$B/src/wxmaxima"
 ls -l "$OUT/wxMaxima"
-echo "fpuauto: $("$TC/bin/m68k-amigaos-objdump" -d "$OUT/wxMaxima" | grep -c 'jsr.*<___wrap_' || true) wrapped calls in wxMaxima"
+echo "fpuauto: $("$TC/bin/m68k-amigaos-objdump" -d "$OUT/wxMaxima.debug" | grep -c 'jsr.*<___wrap_' || true) wrapped calls in wxMaxima"
 
 # ---- 6 the package: the wxMaxima drawer
 P="$WORK/pkg/wxMaxima"; M="$P/Maxima"
