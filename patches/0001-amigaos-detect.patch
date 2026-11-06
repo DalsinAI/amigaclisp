@@ -1,0 +1,21 @@
+--- a/src/lispbibl.d	2026-11-05 14:54:22.989293069 +0000
++++ b/src/lispbibl.d	2026-11-05 14:54:23.011558080 +0000
+@@ -160,7 +160,7 @@
+  */
+ 
+ /* this machine: WIN32 or GENERIC_UNIX */
+-#if (defined(__unix) || defined(__unix__) || defined(_AIX) || defined(sinix) || defined(__MACH__) || defined(__POSIX__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__HAIKU__) || defined(__minix)) && !defined(unix)
++#if (defined(__unix) || defined(__unix__) || defined(_AIX) || defined(sinix) || defined(__MACH__) || defined(__POSIX__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__HAIKU__) || defined(__minix) || defined(__amigaos__)) && !defined(unix)
+   #define unix
+ #endif
+ #if defined(_WIN32) && (defined(_MSC_VER) || defined(__MINGW32__))
+@@ -287,6 +287,9 @@
+   #ifdef __linux__
+     #define UNIX_LINUX  /* Linux (Linus Torvalds Unix) */
+   #endif
++  #ifdef __amigaos__
++    #define UNIX_AMIGAOS  /* 68k AmigaOS 3.x with libnix (AmigaCLISP) */
++  #endif
+   #ifdef __GNU__
+     #define UNIX_HURD  /* the GNU system (Hurd + glibc) */
+   #endif
