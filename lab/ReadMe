@@ -1,7 +1,7 @@
-AmigaCLISP 0.1 rc1 - GNU CLISP 2.49.95+ (ANSI Common Lisp) for AmigaOS 3.x
+AmigaCLISP 0.1 rc2 - GNU CLISP 2.49.95+ (ANSI Common Lisp) for AmigaOS 3.x
 
 Needs: a 68040 (or better) and AmigaOS 3.x.
-This build uses soft float; FPU use when present comes in a later release.
+One program for every 68040: it uses the FPU when there is one, soft float otherwise.
 
 Install
   Copy the AmigaCLISP drawer where you want it, open a Shell there and type

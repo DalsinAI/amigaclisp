@@ -7,7 +7,7 @@ set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 TOP=$(dirname "$HERE")
 OUT=${OUT:?OUT is not set}
-VERSION=${CLISP_VERSION:-0.1-rc1}
+VERSION=${CLISP_VERSION:-0.1-rc2}
 sh "$TOP/build-amiga.sh" | tee "$OUT/build.log"
 grep -q '] DONE$' "$OUT/build.log" || { echo "top build not done: run again"; exit 1; }
 LHA=$OUT/AmigaCLISP-$VERSION.lha
