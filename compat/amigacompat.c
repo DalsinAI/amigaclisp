@@ -1,6 +1,7 @@
 /* AmigaCLISP: the few POSIX calls CLISP needs that libnix doesn't have.
    Copyright (c) 2026 AmiCradle Team. GPL-2.0-or-later, as CLISP. */
 #include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -44,4 +45,36 @@ void __wrap_abort (void)
           __builtin_return_address(0), (void *)main);
   fflush(stderr);
   __real_abort();
+}
+
+/* fcntl(F_GETFL) fails in libnix for the standard handles, and CLISP takes
+   that as "no stdin/stdout" (nohup): every standard stream comes out empty
+   and nothing is printed. When it fails there, give the direction the handle
+   has: 0 reads, 1 and 2 write. */
+int __real_fcntl (int fd, int cmd, ...);
+int __wrap_fcntl (int fd, int cmd, ...)
+{
+  va_list ap;
+  va_start(ap, cmd);
+  long arg = va_arg(ap, long);
+  va_end(ap);
+  int r = __real_fcntl(fd, cmd, arg);
+  if (r < 0 && cmd == F_GETFL && fd >= 0 && fd <= 2) {
+    BPTR h = fd == 0 ? Input() : fd == 1 ? Output() : (BPTR)0;
+    if (fd == 2 || h != 0) {
+      errno = 0;
+      return fd == 0 ? O_RDONLY : O_WRONLY;
+    }
+  }
+  return r;
+}
+
+/* LISTEN on a standard handle (patch 0011): 1 when a key is waiting at the
+   console, 0 when none is, -1 when it is no console (CLISP's own test runs). */
+int amiga_listen (int fd)
+{
+  BPTR h = fd == 0 ? Input() : 0;
+  if (h == 0 || !IsInteractive(h))
+    return -1;
+  return WaitForChar(h, 0) ? 1 : 0;
 }

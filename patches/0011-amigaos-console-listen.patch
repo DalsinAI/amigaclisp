@@ -1,0 +1,20 @@
+--- a/src/stream.d
++++ b/src/stream.d
+@@ -4816,6 +4816,17 @@
+    Method 4: switch temporarily to non-blocking I/O and try read(),
+              see READ(2V), FILIO(4), or
+              see READ(2V), FCNTL(2V), FCNTL(5) */
++ #if defined(UNIX_AMIGAOS)
++  /* An AmigaOS console: libnix's select() cannot tell, so ask
++     dos.library WaitForChar() (compat/amigacompat.c). Without this,
++     CLEAR-INPUT reads (and drops) every line typed at the prompt. */
++  {
++    extern int amiga_listen (int fd); /* 1 available, 0 wait, -1 no console */
++    var int r = amiga_listen(handle);
++    if (r == 0) return LISTEN_WAIT;
++    if (r > 0) return LISTEN_AVAIL;
++  }
++ #endif
+   #if !defined(WIN32_NATIVE)
+   #if defined(HAVE_POLL) && (defined(HAVE_RELIABLE_POLL) || !defined(HAVE_RELIABLE_SELECT))
+   {

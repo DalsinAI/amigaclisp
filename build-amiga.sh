@@ -9,7 +9,7 @@
 #   2 host    a native CLISP, used to compile the Lisp sources to .fas
 #             (.fas byte code is the same on every platform)
 #   3 cross   lisp.run for m68k-amigaos with this port's patches
-#   4 package lisp.run, the .fas files and lab/MakeImage for the lab, where
+#   4 package lisp.run, the .fas files and lab/ (Install, CLISP, MakeImage), where
 #             lispinit.mem is saved (a memory image must be made on the target)
 #
 # Copyright (c) 2026 AmiCradle Team. GPL-2.0-or-later, as CLISP.
@@ -48,7 +48,7 @@ if [ ! -f "$SRC/.unpacked" ]; then
   mv "$SRC.tmp" "$SRC"
   touch "$SRC/.unpacked"
 fi
-PSET=$(cat "$HERE"/patches/*.patch "$HERE"/host-patches/*.patch "$HERE"/compat/*.c "$HERE/toolchain/config.site" "$HERE/toolchain/fas-be.lisp" "$HERE/build-amiga.sh" 2>/dev/null | sha256sum | cut -c1-16)
+PSET=$(cat "$HERE"/patches/*.patch "$HERE"/host-patches/*.patch "$HERE"/compat/*.c "$HERE/toolchain/config.site" "$HERE/build-amiga.sh" 2>/dev/null | sha256sum | cut -c1-16)
 XSRC=$CACHE/xsrc
 CROSS=$CACHE/cross
 if [ "$(cat "$XSRC/.pset" 2>/dev/null)" != "$PSET" ]; then
@@ -60,7 +60,7 @@ if [ "$(cat "$XSRC/.pset" 2>/dev/null)" != "$PSET" ]; then
 fi
 
 # 2 host: from the pristine source plus the host patches (host-patches/: the
-# compiler's byte-order switch, used by stage 2b), in its own tree and folder
+# compiler's byte order at run time), in its own tree and folder
 HPSET=$(cat "$HERE"/host-patches/*.patch 2>/dev/null | sha256sum | cut -c1-16)
 HSRC=$CACHE/hsrc-$HPSET
 HOST=$CACHE/host-$HPSET
@@ -89,28 +89,16 @@ if [ ! -f "$HOST/.done" ]; then
   fi
 fi
 
-# 2b big-endian .fas: a compiled function's code header holds 16-bit counts in
-# the byte order of the Lisp that compiled it, and the host is little-endian.
-# The host CLISP's compiler has the byte-order switch (host-patches/0001):
-# compile the Lisp system again with it set to big-endian (toolchain/fas-be.lisp).
-FASBE=$CACHE/fas-be
-if [ "$(cat "$FASBE/.pset" 2>/dev/null)" != "$PSET" ]; then
-  log "big-endian .fas (budget $(left) s)"
-  rm -rf "$FASBE"; mkdir -p "$FASBE"
-  for f in "$HOST"/*.fas; do
-    n=$(basename "$f" .fas)
-    if [ -f "$HOST/$n.lisp" ]; then echo "$HOST/$n.lisp"; else echo "$HSRC/src/$n.lisp"; fi
-  done > "$CACHE/fas-be.list"
-  if ( cd "$HOST" && FAS_LIST="$CACHE/fas-be.list" FAS_OUT="$FASBE/" \
-       timeout "$(left)" $NICE ./lisp.run -B . -M lispinit.mem -norc -q "$HERE/toolchain/fas-be.lisp" ) > "$CACHE/fas-be.log" 2>&1; then
-    grep '^fas-be:' "$CACHE/fas-be.log" | sed 's/^/[fas] /'
-    echo "$PSET" > "$FASBE/.pset"
-  else
-    tail -40 "$CACHE/fas-be.log"
-    [ "$(left)" -le 5 ] && { log "RESUME: run build-amiga.sh again"; exit 0; }
-    exit 1
-  fi
-fi
+# .fas files keep code headers little-endian on every machine: the reader
+# (io.d) swaps them on a big-endian Lisp, so the host .fas go in as they are.
+# host-patches/0001 makes the compiler build its in-memory headers in the byte
+# order of the Lisp it runs in, so code compiled on the 68k (CLOS dispatch,
+# COMPILE) is big-endian there; upstream fixed that order when compiler.lisp
+# was itself compiled, on the little-endian host.
+
+# fpuauto (amicradle-guest common/fpuauto) is in the stoves' own gcc specs
+# (6 Nov 2026): every 68040 soft-float libnix link, lisp's too, takes the FPU
+# when the machine has one and the soft routine otherwise. Nothing to add here.
 
 # 3 cross
 # Object model: WIDE_SOFT (64-bit objects on a 32-bit CPU), the one model that
@@ -121,7 +109,7 @@ OPT=${CLISP_OPT:--O1}   # -O2: gc_mark aborts while loading compiler.fas (likely
 OBJMODEL="-DNO_ADDRESS_SPACE_ASSUMPTIONS -DNO_ASM -DNO_ARI_ASM -DNO_SP_ASM -DNO_GENERATIONAL_GC"
 # file calls that take a path go through compat/unixpath.c
 WRAPS="-Wl,--wrap=open,--wrap=stat,--wrap=lstat,--wrap=access,--wrap=opendir,--wrap=chdir,--wrap=getcwd"
-WRAPS="$WRAPS,--wrap=mkdir,--wrap=rmdir,--wrap=unlink,--wrap=rename,--wrap=realpath,--wrap=readlink,--wrap=abort"
+WRAPS="$WRAPS,--wrap=mkdir,--wrap=rmdir,--wrap=unlink,--wrap=rename,--wrap=realpath,--wrap=readlink,--wrap=abort,--wrap=fcntl"
 if [ ! -f "$CROSS/.done" ]; then
   [ -x "$CC_AMIGA" ] || { echo "no compiler at $CC_AMIGA"; exit 1; }
   log "$("$CC_AMIGA" --version | head -1)"
@@ -169,8 +157,8 @@ fi
 PKG=$OUT/AmigaCLISP
 rm -rf "$PKG"; mkdir -p "$PKG/full"
 cp "$CROSS/lisp.run" "$PKG/lisp"
-cp "$FASBE"/*.fas "$PKG/full/"
-cp "$HERE/lab/MakeImage" "$PKG/"; cp "$HERE/lab/makeimage.lisp" "$PKG/full/"
+cp "$HOST"/*.fas "$PKG/full/"
+cp "$HERE/lab/MakeImage" "$HERE/lab/Install" "$HERE/lab/CLISP" "$HERE/lab/ReadMe" "$PKG/"; cp "$HERE/lab/makeimage.lisp" "$PKG/full/"
 OBJDUMP="$STOVE/prefix/bin/m68k-amigaos-objdump"
 # symbol map for crash addresses ([amiga abort] lines give an address and main's)
 "$STOVE/prefix/bin/m68k-amigaos-nm" -n "$PKG/lisp" > "$OUT/lisp.map" 2>/dev/null || true
@@ -180,7 +168,15 @@ grep -E '^ \.text +0x[0-9a-f]+ +0x[0-9a-f]+ ' "$CACHE/lisp.ldmap" > "$OUT/text-o
 "$STOVE/prefix/bin/m68k-amigaos-nm" -n "$CROSS/spvw.o" > "$OUT/spvw.nm" 2>/dev/null || true
 "$STOVE/prefix/bin/m68k-amigaos-strip" -o "$PKG/lisp.stripped" "$PKG/lisp" 2>/dev/null && mv "$PKG/lisp.stripped" "$PKG/lisp" || log "strip failed: lisp left unstripped"
 # FPU instructions, by function (68040 disassembly; libnix's start-up FPCR set-up is guarded)
+echo "fpuauto: $("$OBJDUMP" -d "$CROSS/lisp.run" | grep -c 'jsr.*<___wrap_' || true) wrapped calls in lisp"
+[ "$("$OBJDUMP" -d "$CROSS/lisp.run" | grep -c 'jsr.*<___wrap_' || true)" -gt 0 ] || { echo "fpuauto: no wrapped calls (the stove lacks fpuauto?)"; exit 1; }
 "$OBJDUMP" -m m68k:68040 -d "$CROSS/lisp.run" | awk -F'\t' '/^[0-9a-f]+ <.*>:$/ {fn=$0} $3 ~ /^f[a-z]/ {n[fn]++; t++} END {print "FPU instructions:", t+0; for (f in n) print "  " n[f], f}' | head -40
 log "lisp $(wc -c < "$PKG/lisp") bytes"
 ( cd "$PKG" && find . -type f | sort | xargs sha256sum ) > "$OUT/SHA256SUMS"
+# the package in parts under 256 KiB, so it can be taken from a lab whole
+# (lab_get returns one file up to 256 KiB): cat parts/* | tar -xz
+rm -rf "$OUT/parts"; mkdir -p "$OUT/parts"
+tar -C "$OUT" -czf - AmigaCLISP | split -b 200k -d -a 2 - "$OUT/parts/AmigaCLISP.tgz."
+( cd "$OUT/parts" && cat AmigaCLISP.tgz.* | sha256sum ) > "$OUT/parts.sha256"
+log "parts: $(ls "$OUT/parts" | wc -l)"
 log "DONE"
