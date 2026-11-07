@@ -2,7 +2,7 @@
 """Packs a drawer into an Amiga LhA archive (level-1 headers, lh5) with our own
 packer (lha_archive.py, AmiCradle's LhA writer), and reads it back to check.
 Usage: mklha.py <drawer> <archive.lha>   Scripts get the S protection bit.
-Copyright (c) 2026 AmigaChrome Team."""
+Copyright (c) 2026 AmiCradle Team."""
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))

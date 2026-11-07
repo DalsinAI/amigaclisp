@@ -2,7 +2,7 @@
 # AmigaCLISP release archive: runs the top build-amiga.sh (cached stages are
 # reused), then packs OUT/AmigaCLISP into AmigaCLISP-<version>.lha with our own
 # LhA packer, plus the archive in parts under 256 KiB for taking from a lab.
-# Copyright (c) 2026 AmigaChrome Team. GPL-2.0-or-later, as CLISP.
+# Copyright (c) 2026 AmiCradle Team. GPL-2.0-or-later, as CLISP.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 TOP=$(dirname "$HERE")

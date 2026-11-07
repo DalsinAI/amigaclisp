@@ -1,7 +1,7 @@
 /* AmigaCLISP: with CLISP_TRACE set, exit() says where from and with what code.
    Linked into lisp only (-Wl,--wrap=exit is added to the Makefile after
    configure, whose test programs must not see it).
-   Copyright (c) 2026 AmigaChrome Team. GPL-2.0-or-later, as CLISP. */
+   Copyright (c) 2026 AmiCradle Team. GPL-2.0-or-later, as CLISP. */
 #include <stdio.h>
 #include <stdlib.h>
 

@@ -1,5 +1,5 @@
 /* AmigaCLISP: the few POSIX calls CLISP needs that libnix doesn't have.
-   Copyright (c) 2026 AmigaChrome Team. GPL-2.0-or-later, as CLISP. */
+   Copyright (c) 2026 AmiCradle Team. GPL-2.0-or-later, as CLISP. */
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
