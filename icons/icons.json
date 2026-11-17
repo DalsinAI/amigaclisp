@@ -1,0 +1,20 @@
+{
+  "about": "The Workbench icon of the AmigaCLISP drawer: python3 AMICRADLE/scripts/ports/port_icons.py icons/icons.json --out icons (DalsinAI/amicradle). The art (art/amigaclisp.png, a lambda on a tile, 128 x 128) is The AmiCradle Team's own, under the same terms as the other Amiga files. AmigaCLISP.info is the drawer's own icon (package/build-amiga.sh puts it beside the drawer); ReadMe.info and CLISP.info (the CLISP script, run by IconX) go in it.",
+  "drawer": {
+    "name": "AmigaCLISP",
+    "file": "AmigaCLISP.info"
+  },
+  "badge": "art/amigaclisp.png",
+  "icons": [
+    {
+      "file": "ReadMe.info",
+      "kind": "readme"
+    },
+    {
+      "file": "CLISP.info",
+      "kind": "tool",
+      "defaultTool": "C:IconX",
+      "type": "project"
+    }
+  ]
+}

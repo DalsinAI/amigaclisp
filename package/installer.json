@@ -1,0 +1,13 @@
+{
+  "name": "AmigaCLISP",
+  "version": "0.1-rc3",
+  "drawer": "AmigaCLISP",
+  "program": "lisp",
+  "cpu": "68040",
+  "fpu": false,
+  "space": 30000000,
+  "modules": [],
+  "keep": [],
+  "parent": "Work:",
+  "badge": "../icons/art/amigaclisp.png"
+}
