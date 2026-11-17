@@ -8,3 +8,19 @@ encoding.o _mac_arabic_page06  # libiconv-style code page table, static const
 libgnu_a-uniname.o _unicode_index_to_name  # gnulib uninames.h table, static const
 libgnu.a _unicode_index_to_name  # the same table, in the archive
 lisparit.o _pi_mantisse  # the digits of pi, a const uintD array
+libgnu_a-uniname.o _unicode_name_to_index  # gnulib uninames.h table, static const
+libgnu.a _unicode_name_to_index  # the same table, in the archive
+libgnu_a-uniname.o _unicode_names  # gnulib uninames.h table, static const
+libgnu.a _unicode_names  # the same table, in the archive
+libgnu_a-uniname.o _unicode_name_by_length  # gnulib uninames.h table, static const
+libgnu.a _unicode_name_by_length  # the same table, in the archive
+libgnu_a-uniname.o _unicode_name_words  # gnulib uninames.h table, static const
+libgnu.a _unicode_name_words  # the same table, in the archive
+libgnu_a-uniname.o _unicode_ranges  # gnulib uninames.h table, static const
+libgnu.a _unicode_ranges  # the same table, in the archive
+libgnu_a-uniname.o _jamo_initial_short_name  # gnulib uninames.h table, static const
+libgnu.a _jamo_initial_short_name  # the same table, in the archive
+libgnu_a-uniname.o _jamo_medial_short_name  # gnulib uninames.h table, static const
+libgnu.a _jamo_medial_short_name  # the same table, in the archive
+libgnu_a-uniname.o _jamo_final_short_name  # gnulib uninames.h table, static const
+libgnu.a _jamo_final_short_name  # the same table, in the archive
