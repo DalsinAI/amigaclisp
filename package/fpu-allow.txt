@@ -1,0 +1,10 @@
+# C constant tables in .text that objdump decodes as code (OBJECT SYMBOL  # why)
+encoding.o _cp1250_page01  # libiconv-style code page table, static const
+encoding.o _cp1257_page01  # libiconv-style code page table, static const
+encoding.o _iso8859_13_page01  # libiconv-style code page table, static const
+encoding.o _iso8859_2_page01  # libiconv-style code page table, static const
+encoding.o _iso8859_6_page06  # libiconv-style code page table, static const
+encoding.o _mac_arabic_page06  # libiconv-style code page table, static const
+libgnu_a-uniname.o _unicode_index_to_name  # gnulib uninames.h table, static const
+libgnu.a _unicode_index_to_name  # the same table, in the archive
+lisparit.o _pi_mantisse  # the digits of pi, a const uintD array
