@@ -15,7 +15,7 @@ parameter list, such as Math::sineWindow512 or
 Scumm::ScummEngine::resetPalette(bool)::tableNESNTSCPalette. A hit in a
 C++ object's exception tables are data too: the amiga format has no
 .eh_frame section, so GCC puts the frame records in .text after
-__EH_FRAME_BEGIN__. A hit in a
+__EH_FRAME_BEGIN__. A switch's jump table after "jmp %pc@(T,dN:w)" is skipped. A hit in a
 function, or in a C symbol (which can't be told apart), fails unless --allow
 names it ("OBJECT-BASENAME SYMBOL  # why" per line).
 
@@ -36,17 +36,51 @@ EH_FRAME = {"__EH_FRAME_BEGIN__", "___EH_FRAME_BEGIN__", "__FRAME_END__", "___FR
 FUNCTION = re.compile(r"\)(?: const| volatile| &&| &| noexcept)*$")
 
 
+LINE = re.compile(r"^\s*([0-9a-f]+):\t([0-9a-f ]+)\t(\S+)\s*(.*)$")
+PCREL = re.compile(r"%pc@\(([0-9a-f]+)\b")
+
+
 def fpu_hits(listing: str) -> list[tuple[str, str]]:
-    """(symbol, mnemonic) for each FPU mnemonic in an objdump -d listing."""
+    """(symbol, mnemonic) for each FPU mnemonic in an objdump -d listing.
+
+    A switch's jump table is data in .text: GCC's "jmp %pc@(T,dN:w)" is
+    followed by T's 16-bit offsets, each a case's address less T. objdump
+    decodes them as code, and they can look like FPU branches. The table is
+    skipped up to the first case address after it (or to the next symbol
+    when every case is before it)."""
     found, sym = [], ""
+    table = end = None                     # the table's address, and where code resumes
     for line in listing.splitlines():
         lab = LABEL.match(line)
         if lab:
-            sym = lab.group(1)
+            sym, table, end = lab.group(1), None, None
             continue
-        m = INSN.match(line)
-        if m and m.group(1).startswith("f"):
-            found.append((sym, m.group(1)))
+        m = LINE.match(line)
+        if not m:
+            continue
+        addr, raw, mnem, ops = int(m.group(1), 16), m.group(2).split(), m.group(3), m.group(4)
+        if table is not None:
+            if end is not None and addr >= end:
+                table = end = None
+            else:
+                for i, word in enumerate(raw):
+                    if len(word) != 4:
+                        continue
+                    off = int(word, 16)
+                    off -= 0x10000 if off & 0x8000 else 0
+                    here = addr + 2 * i
+                    if end is not None and here >= end:
+                        break
+                    if table + off > here:
+                        end = table + off if end is None else min(end, table + off)
+                if end is None or addr + 2 * len(raw) <= end or addr < end:
+                    continue
+                table = end = None
+        if mnem.startswith("f"):
+            found.append((sym, mnem))
+        elif mnem == "jmp" and PCREL.search(ops):
+            table = int(PCREL.search(ops).group(1), 16)
+            end = None
     return found
 
 

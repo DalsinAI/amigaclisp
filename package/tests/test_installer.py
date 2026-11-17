@@ -107,6 +107,13 @@ check(not fpu_check.is_data("_main", "_main"), "fpu_check fails an FPU instructi
 check(fpu_check.is_data("__ZN4Math13sineWindow512E", "Math::sineWindow512"), "fpu_check reads a C++ table as data")
 check(fpu_check.fpu_hits("00000000 <_f>:\n   0:\tf200 0400 \tfmovel %d0,%fp0\n") == [("_f", "fmovel")],
       "fpu_check finds an FPU instruction")
+switch = ("00000000 <_f>:\n   0:\t303b 0a06 \tmovew %pc@(8 <_f+0x8>,%d0:l:2),%d0\n"
+          "   4:\t4efb 0002 \tjmp %pc@(8 <_f+0x8>,%d0:w)\n   8:\tf2c2 0004 \tfbogtl 12\n"
+          "   c:\tf200 0400 \tfmovel %d0,%fp0\n")
+check(fpu_check.fpu_hits(switch) == [("_f", "fmovel")], "fpu_check skips a switch's jump table, and finds code after it")
+backward = ("00000000 <_g>:\n   0:\t4efb 0002 \tjmp %pc@(4 <_g+0x4>,%d0:w)\n   4:\tf2c2 fffc \tfbogtl 2\n"
+            "00000008 <_h>:\n   8:\tf200 0400 \tfmovel %d0,%fp0\n")
+check(fpu_check.fpu_hits(backward) == [("_h", "fmovel")], "a jump table with every case before it ends at the next symbol")
 
 allow = PKG / "fpu-allow.txt"
 if allow.exists():
