@@ -1,0 +1,12 @@
+{
+  "makefiles": [
+    "build-amiga.sh"
+  ],
+  "no_cpu": [
+    "build-amiga.sh"
+  ],
+  "builds": [
+    "package/build-amiga.sh"
+  ],
+  "fpu": false
+}
