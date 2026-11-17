@@ -1,0 +1,16 @@
+# amicradle-ci: the AmiCradle Team's local CI. MIT, Copyright (c) 2026 AmiCradle Team.
+schema = 1
+repo = "amigaclisp"
+
+[stove]
+name = "os32-gcc16"
+version = "16.2.0-open8"
+
+[build]
+entry = "build-amiga.sh"
+
+[test]
+host = ["python3 package/tests/test_installer.py"]
+
+[paths]
+skip = ["*.md", "docs/*", "LICENSE"]
